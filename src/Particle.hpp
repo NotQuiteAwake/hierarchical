@@ -14,6 +14,9 @@ class Particle {
         Vec mAccel;
 
     public:
+        Particle();
+        Particle(double mass, double charge);
+
         double GetMass() const;
         double GetCharge() const;
 

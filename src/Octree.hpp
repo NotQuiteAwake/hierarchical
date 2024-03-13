@@ -4,50 +4,52 @@
 #include <memory>
 #include <vector>
 #include "Particle.hpp"
+#include "Grid.hpp"
+#include "Octant.hpp"
 
 namespace sim {
 
 class Octree {
-    private:
-        static const int mBoxes = 8;
+    public:
+        static const int mBoxes = 8; // TODO: rework naming since these are
+                                     // public
         static const int mDim = 3;
 
-        bool isLeaf;
-
-        // we are not responsible for the parent's lifetime
-        // and don't need to new/delete
-        const Octree* mParent; 
+    private:
+        int mMaxParticles;
+        bool mIsLeaf = true;
+        // we are not responsible for the parent's lifetime (no new/delete)
+        Octree* mParent; 
         std::unique_ptr<Octree> mChildren[mBoxes];
+        const Grid& mGrid;
 
         Octree(const Octree& otherTree);  // disallow this with unique_ptr
+        void Split(); // split the tree into 8
+
 
     public:
-        const double limits[mDim][2];
-
+        Octant octant;
         std::vector<int> mOctantSouls[mBoxes]; // number pointer to particles
         std::vector<int> mSouls;
 
-        // mLim[Axes::x][0] <= x < mLim[Axes::x][1]
-        double COM[mDim]; // centre of mass
         std::unique_ptr<double[]> M; // multipoles; depends on expansion order p
         std::unique_ptr<double[]> L; // local expansion
 
-        Octree(const Octree* parent, const double (&lim)[mDim][2]); 
+        Vec com; // centre of mass
+        double mass;
 
+        Octree(Octree* parent, const Grid& grid, const Octant& new_oct,
+                int maxParticles);
+        
         // just want to know what child is, no need for ownership semantics
-        // return value could be a nullptr
         Octree* GetChild(int index);
+        Octree const* GetChild(int index) const;
         Octree* GetParent();
 
+        double GetMaxLength() const;
         bool IsLeaf() const;
-
-        static void GetOctant(const double (&lim)[mDim][2],
-                double (&octLim)[mDim][2], int octant);
-        void GetOctant(double (&octLim)[mDim][2], int octant);
-
-        void Split(); // split the tree into 8
-        // maintain some statistics along the way
-        void AddParticle(const Particle& p, int soul);
+        void AddParticle(const Particle& par, int soul);
+        Particle GetParticle(int soul) const;
 };
 
 }

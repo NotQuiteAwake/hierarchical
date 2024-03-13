@@ -1,27 +1,28 @@
 #ifndef GRIDHEADERDEF
 #define GRIDHEADERDEF
 
-#include <memory>
+#include <vector>
 #include "Particle.hpp"
+#include "Octant.hpp"
 
 namespace sim {
 
 class Grid {
     private:
-        const int mSize;
-        const double mLength;
-        std::unique_ptr<Particle> mParticles;
+        const Octant mOctant;
+        std::vector<Particle> mParticles;
 
     public:
-        Grid(int size, double length);
-        Grid(const Grid& otherGrid);
-        Grid& operator=(const Grid& otherGrid);
+        Grid(Octant octant);
 
         int GetSize() const;
-        double GetLength() const;
+        const Octant GetLimits() const;
 
         Particle& operator[](int index);
         Particle operator[](int index) const;
+
+        const std::vector<Particle>& GetParticles() const;
+        void AddParticle(const Particle& par);
 };
 
 }
