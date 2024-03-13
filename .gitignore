@@ -1,2 +1,7 @@
 tags
 .ccls-cache
+*.plist
+.cache
+compile_commands.json
+build/
+
