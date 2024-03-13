@@ -8,13 +8,15 @@ SRC_DIR = ./src
 CXX = g++
 CXX_FLAGS = -Wall -std=c++17 -O2 -I$(TEST_DIR) -I$(SRC_DIR)
 
-BIN = hchl_test
+BIN = test
 
 # List of all .cpp source files.
 CPP = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(TEST_DIR)/*.cpp)
 
 OBJ = $(CPP:%.cpp=$(BUILD_DIR)/%.o)	# objects
 DEP = $(OBJ:%.o=%.d)	# dependency files
+
+.PHONY: $(BIN)
 
 $(BIN) : $(BUILD_DIR)/$(BIN)	# deault target
 

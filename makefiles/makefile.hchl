@@ -16,6 +16,8 @@ CPP = main.cpp $(wildcard $(SRC_DIR)/*.cpp)
 OBJ = $(CPP:%.cpp=$(BUILD_DIR)/%.o)	#objects
 DEP = $(OBJ:%.o=%.d)	# dependency files
 
+.PHONY: $(BIN)
+
 $(BIN) : $(BUILD_DIR)/$(BIN)	# deault target
 
 $(BUILD_DIR)/$(BIN) : $(OBJ)	# actual target depends on *.o

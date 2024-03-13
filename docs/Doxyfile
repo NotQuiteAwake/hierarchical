@@ -1,0 +1,19 @@
+PROJECT_NAME            = "Hierarchical"
+INPUT                   = "../src/"
+GENERATE_LATEX          = YES
+PDF_HYPERLINKS          = YES
+# OUTPUT_DIRECTORY        = "doc"
+EXTRACT_ALL             = YES
+
+HTML_COLORSTYLE         = LIGHT
+
+HAVE_DOT                = YES
+CALL_GRAPH              = YES
+CALLER_GRAPH            = YES
+UML_LOOK                = NO
+
+SHOW_USED_FILES         = YES
+FULL_PATH_NAMES         = NO
+VERBATIM_HEADERS        = YES
+# SOURCE_BROWSER          = YES
+
