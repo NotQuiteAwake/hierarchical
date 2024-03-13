@@ -1,0 +1,35 @@
+# inspired by https://stackoverflow.com/a/30142139
+
+# be sure to use g++ not gcc, or face a million undefined reference errors...
+BUILD_DIR = ./build
+TEST_DIR = ./tests
+SRC_DIR = ./src
+
+CXX = g++
+CXX_FLAGS = -Wall -std=c++17 -O2 -I$(TEST_DIR) -I$(SRC_DIR)
+
+BIN = hchl
+
+# List of all .cpp source files.
+CPP = main.cpp $(wildcard $(SRC_DIR)/*.cpp)
+
+OBJ = $(CPP:%.cpp=$(BUILD_DIR)/%.o)	#objects
+DEP = $(OBJ:%.o=%.d)	# dependency files
+
+$(BIN) : $(BUILD_DIR)/$(BIN)	# deault target
+
+$(BUILD_DIR)/$(BIN) : $(OBJ)	# actual target depends on *.o
+	mkdir -p $(@D)
+	$(CXX) $(CXX_FLAGS) $^ -o $@	# link objects
+
+-include $(DEP)
+
+# build object files
+$(BUILD_DIR)/%.o : %.cpp	# depends on cpp files
+	mkdir -p $(@D)
+	$(CXX) $(CXX_FLAGS) -MMD -c $< -o $@	# -MMD file adds *.d files
+
+
+.PHONY : clean
+clean :
+	-rm -f $(BUILD_DIR)/$(BIN) $(OBJ) $(DEP)
