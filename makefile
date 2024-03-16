@@ -20,3 +20,4 @@ clean:
 	make -f makefiles/makefile.hchl clean
 	make -f makefiles/makefile.test clean
 	make -f makefiles/makefile.docs clean
+	rm *.plist

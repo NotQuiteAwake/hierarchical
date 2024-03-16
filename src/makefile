@@ -1,5 +1,6 @@
-all:
-	$(MAKE) -C .. $@
+default:
+	$(MAKE) -C ..
+
 %:
 	$(MAKE) -C .. $@
 
