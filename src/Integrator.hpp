@@ -7,21 +7,31 @@
 namespace sim {
 
 class Integrator {
-    private:
+    protected:
         const double mStep;
          
     public:
         Integrator(double step);
         double GetStep() const;
 
-        Particle Euler(const Particle& p1) const;
-        Grid Euler(const Grid& g1) const;
+        virtual Particle Evolve(const Particle& p1, const double step) const = 0;
+        Particle Evolve(const Particle& p1) const;
+        Grid Evolve(const Grid& g1, const double step) const;
+        Grid Evolve(const Grid& g1) const;
+};
 
-        Particle LeapFrog(const Particle& p1) const;
-        Grid LeapFrog(const Grid& g1) const;
+class Euler : public Integrator {
+    public:
+        using Integrator::Evolve;
+        Euler(double step);
+        Particle Evolve(const Particle& p1, const double step) const override;
+};
 
-        Particle RK4(const Particle& p1) const;
-        Grid RK4(const Grid& g1) const;
+class LeapFrog : public Integrator {
+    public:
+        using Integrator::Evolve;
+        LeapFrog(double step);
+        Particle Evolve(const Particle& p1, const double step) const override;
 };
 
 }

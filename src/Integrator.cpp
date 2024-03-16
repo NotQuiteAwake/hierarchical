@@ -7,42 +7,47 @@ Integrator::Integrator(double step): mStep(step) {}
 
 double Integrator::GetStep() const { return mStep; }
 
-Particle Integrator::Euler(const Particle& p1) const {
-    Vec new_vel = p1.GetVel() + p1.GetAccel() * mStep;
-    Vec new_pos = p1.GetPos() + p1.GetVel() * mStep;
-
-    Particle p2;
-    p2.SetVel(new_vel);
-    p2.SetPos(new_pos);
-
-    return p2;
+Particle Integrator::Evolve(const Particle& p1) const {
+    return Evolve(p1, mStep);
 }
 
-Grid Integrator::Euler(const Grid& g1) const {
+Grid Integrator::Evolve(const Grid& g1, double step) const {
     Grid g2 = Grid(g1.GetLimits());
+    g2.Reserve(g1.GetSize()); // reduce allocation on the fly
     for (int i = 0; i < g1.GetSize(); i++) {
-        g2.AddParticle(Euler(g1[i]));
+        g2.AddParticle(Evolve(g1[i], step));
     }
     return g2;
 }
 
-Particle Integrator::LeapFrog(const Particle& p1) const {
-    Vec new_vel = p1.GetVel() + p1.GetAccel() * mStep;
-    Vec new_pos = p1.GetPos() + new_vel * mStep;
+Grid Integrator::Evolve(const Grid& g1) const {
+    return Evolve(g1, mStep);
+}
 
-    Particle p2;
-    p2.SetVel(new_vel);
-    p2.SetPos(new_pos);
+Euler::Euler(double step): Integrator(step) {}
+
+Particle Euler::Evolve(const Particle& p1, const double step) const {
+    Vec new_vel = p1.vel + p1.accel * step;
+    Vec new_pos = p1.pos + p1.vel * step;
+
+    Particle p2(p1.GetMass(), p1.GetCharge());
+    p2.vel = new_vel;
+    p2.pos = new_pos;
 
     return p2;
 }
 
-Grid Integrator::LeapFrog(const Grid& g1) const {
-    Grid g2 = Grid(g1.GetLimits());
-    for (int i = 0; i < g1.GetSize(); i++) {
-        g2.AddParticle(LeapFrog(g1[i]));
-    }
-    return g2;
+LeapFrog::LeapFrog(double step): Integrator(step) {}
+
+Particle LeapFrog::Evolve(const Particle& p1, const double step) const {
+    Vec new_vel = p1.vel + p1.accel * step;
+    Vec new_pos = p1.pos + new_vel * step;
+
+    Particle p2(p1.GetMass(), p1.GetCharge());
+    p2.vel = new_vel;
+    p2.pos = new_pos;
+
+    return p2;
 }
 
 // TODO: implement RK4?

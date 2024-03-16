@@ -9,7 +9,9 @@ namespace sim {
 
 class Grid {
     private:
-        const Octant mOctant;
+        Octant mOctant;
+        // note, that vector will allocate its memory on the heap. GREAT!
+        // THANK GOD!
         std::vector<Particle> mParticles;
 
     public:
@@ -21,8 +23,8 @@ class Grid {
         Particle& operator[](int index);
         Particle operator[](int index) const;
 
-        const std::vector<Particle>& GetParticles() const;
         void AddParticle(const Particle& par);
+        void Reserve(int size);
 };
 
 }

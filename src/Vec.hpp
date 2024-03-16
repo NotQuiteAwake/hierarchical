@@ -7,9 +7,12 @@
 namespace sim {
 
 class Vec {
-    private:
+    public:
         static const int mDim = 3; // TODO: should this be public?
-        std::unique_ptr<double[]> mCoords;
+
+    private:
+        //std::unique_ptr<double[]> mCoords;
+        double mCoords[mDim];
 
     public:
         Vec();

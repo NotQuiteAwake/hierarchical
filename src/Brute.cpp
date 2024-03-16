@@ -2,6 +2,8 @@
 
 namespace sim {
 
+Brute::Brute(std::shared_ptr<Force> forceLaw) : Interaction(forceLaw) {};
+
 Grid Brute::Calculate(const Grid& g1) const {
     int size = g1.GetSize();
     Grid g2 = g1;
@@ -11,8 +13,8 @@ Grid Brute::Calculate(const Grid& g1) const {
             const Particle& pj = g1[j];
             Vec force = GetForce(pi, pj); 
             // update acceleration pair-wise
-            g2[i].SetAccel(g2[i].GetAccel() + force / g2[i].GetMass());
-            g2[j].SetAccel(g2[j].GetAccel() - force / g2[j].GetMass());
+            g2[i].accel = g2[i].accel + force / g2[i].GetMass();
+            g2[j].accel = g2[j].accel - force / g2[j].GetMass();
         }
     }
 

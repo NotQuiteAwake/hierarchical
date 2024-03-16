@@ -9,24 +9,16 @@ class Particle {
     private:
         double mMass;
         double mCharge;
-        Vec mPos;
-        Vec mVel;
-        Vec mAccel;
 
     public:
-        Particle();
+        Vec pos;
+        Vec vel;
+        Vec accel;
+
         Particle(double mass, double charge);
 
         double GetMass() const;
         double GetCharge() const;
-
-        Vec GetPos() const;
-        Vec GetVel() const;
-        Vec GetAccel() const;
-
-        void SetPos(const Vec& pos);
-        void SetVel(const Vec& vel);
-        void SetAccel(const Vec& accel);
 };
 
 }

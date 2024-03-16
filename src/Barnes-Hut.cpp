@@ -1,3 +1,4 @@
+#include <cassert>
 #include "Barnes-Hut.hpp"
 
 namespace sim {
@@ -38,16 +39,21 @@ Vec BarnesHut::GetNodeCOM(Octree* node) const {
 
 void BarnesHut::ProcessTree(Octree* node) const {
     if (!node) { return; }
-    node->M.reset(new double[mP]);
+    node->M.reserve(mP); // for faster access later on.
 
     if (node -> IsLeaf()) {
         int soul = node->mSouls[0];
         const Particle& par = node->GetParticle(soul);
-        node->M[0] = par.GetCharge(); // only grav charge is mass.
-        node->com = par.GetPos();
+        node->M.push_back(par.GetCharge()); // only grav charge is mass.
+        node->com = par.pos;
         node->mass = par.GetMass();
     } else {
-        node->M[0] = SumChildM(node);
+        // pre-process tree below.
+        for (int i = 0; i < node->mBoxes; i++) {
+            ProcessTree(node->GetChild(i));
+        }
+        // then update from below
+        node->M.push_back(SumChildM(node));
         node->com = GetNodeCOM(node);
         node->mass = SumChildMass(node);
     }
@@ -55,36 +61,33 @@ void BarnesHut::ProcessTree(Octree* node) const {
 
 std::unique_ptr<Octree> BarnesHut::BuildTree(const Grid& g1) const {
     std::unique_ptr<Octree> octree(new Octree(nullptr, g1, g1.GetLimits(), 1));
-    for (int i = 0; i < g1.GetSize(); i++) {
-        const Particle& par = g1[i];
-        octree -> AddParticle(par, i);
-    }
+    octree->BuildAsRoot();
 
     return octree;
 }
 
 bool BarnesHut::IsFarAway(const Particle& par, const Octree* const node) const {
-    const Vec dr = par.GetPos() - node->com;
+    const Vec dr = par.pos - node->com;
     const double dist = dr.CalculateNorm();
     double l = node->GetMaxLength();
     return l < dist * mTheta; // for better double precision
 }
 
 Vec BarnesHut::GetAccel(int soul, const Octree* const node) const {
-    const Particle& par = node->GetParticle(soul);
-
     if (!node) { return Vec(); }
+
+    const Particle& par = node->GetParticle(soul);
     if (node->IsLeaf()) {
         if (node->mSouls[0] == soul) { return Vec(); }
         else {
             const Particle& par2 = node->GetParticle(node->mSouls[0]);
-            return GetForce(par, par2);
+            return GetForce(par, par2) / par.GetMass();
         }
     }
 
     if (IsFarAway(par, node)) {
         Particle virt_par = Particle(node->mass, node->M[0]);
-        virt_par.SetPos(node->com);
+        virt_par.pos = node->com;
         return GetForce(par, virt_par) / par.GetMass();
     }
 
@@ -101,8 +104,8 @@ BarnesHut::BarnesHut(int p, double theta,
     Interaction(forceLaw),
     mP(p),
     mTheta(theta) {
-
-}
+        assert(p == 1); // currently no multipole expansion allowed.
+};
 
 int BarnesHut::GetP() const {
     return mP;
@@ -119,8 +122,9 @@ Grid BarnesHut::Calculate(const Grid& g1) const {
 
     for (int i = 0; i < g1.GetSize(); i++) {
         const Particle& par = g1[i];
-        g2[i].SetAccel(GetAccel(i, octree.get()));
+        g2[i].accel = GetAccel(i, octree.get());
     }
+    return g2;
 }
 
 }

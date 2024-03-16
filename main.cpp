@@ -1,3 +1,5 @@
-int main(int argc, char* argv[]) {
-    return 0;
-}
+#include "Integrator.hpp"
+
+using namespace sim;
+
+int main() {}

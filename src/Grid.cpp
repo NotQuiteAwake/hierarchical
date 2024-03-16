@@ -20,12 +20,12 @@ Particle Grid::operator[](int index) const {
     return mParticles[index];
 }
 
-const std::vector<Particle>& Grid::GetParticles() const {
-    return mParticles;
-}
-
 void Grid::AddParticle(const Particle& par) {
     mParticles.push_back(par);
+}
+
+void Grid::Reserve(int size) {
+    mParticles.reserve(size);
 }
 
 }

@@ -8,6 +8,15 @@ TEST_CASE("testing vector class") {
     Vec v1 = Vec({1, 2, 3});
     Vec v2 = Vec({1, 1, 1});
 
+    // awful things could happen if it was not set by default (assumed
+    // behaviour) as we are dynamically allocating the memory
+    SUBCASE("test ctor initial value") {
+        Vec v = Vec();
+        for (int i = 0; i < Vec::mDim; i++) {
+            CHECK(v[i] == 0);
+        }
+    }
+
     SUBCASE("vector inner product") {
         CHECK(v1.CalculateNorm() == doctest::Approx(sqrt(14)));
     }

@@ -9,7 +9,7 @@
 
 namespace sim {
 
-class BarnesHut : Interaction {
+class BarnesHut : public Interaction {
     private:
         const int mP = 1; // TODO: order of multipole expansion
         const double mTheta;

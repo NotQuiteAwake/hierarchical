@@ -4,18 +4,21 @@
 namespace sim {
 
 Vec::Vec() {
-    mCoords.reset(new double[3]);
+//    mCoords.reset(new double[mDim]);
+    for (int i = 0; i < mDim; i++) {
+        mCoords[i] = 0;
+    }
 }
 
 Vec::Vec(const Vec& otherVec) {
-    mCoords.reset(new double[3]);
+//    mCoords.reset(new double[mDim]);
     for (int i = 0; i < mDim; i++) {
         mCoords[i] = otherVec[i];
     } 
 }
 
 Vec::Vec(const double (&coords)[mDim]) {
-    mCoords.reset(new double[3]);
+//    mCoords.reset(new double[mDim]);
     for (int i = 0; i < mDim; i++) {
         mCoords[i] = coords[i];
     }
