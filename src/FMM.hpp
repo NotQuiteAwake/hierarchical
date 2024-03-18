@@ -1,40 +1,39 @@
 #ifndef FMMHEADERDEF
 #define FMMHEADERDEF
 
+#include <memory>
 #include "Octree.hpp"
+#include "Kernels.hpp"
+#include "Interaction.hpp"
 
 namespace sim {
 
-class FMM {
+class FMM : public Interaction {
     private:
         const int mP;
-        const int mMaxPerCell;
         const double mTheta;
-        
-        bool MAC(const Octree* t1, const Octree* t2) const;
+        const int mMaxPerCell;
+        const int mMaxPairwiseLimit;
+        const std::unique_ptr<const Kernels> mKernels;
 
-        // build initial tree with no calculations done.
-        Octree BuildTree(const Grid& g1) const;
+        bool MAC(const Octree* node1, const Octree* node2) const;
 
-        // destructive, since we don't care about half-baked octrees.
-        void P2M(Octree* leafT, const Grid& g1) const;
-        void M2M(Octree* nonleafT) const;
-        void M2L(Octree* t1, Octree* t2, const Grid& g1) const;
-        void L2L(Octree* t1, Octree* t2) const;
-        void L2P(Octree* leafT, const Grid& g1) const;
-        
-        void CalculateM(Octree* t1) const;
-        void Interact(Octree* t1, Octree* t2) const;
-        // L push-down at this step?
-        void EvaluateAccel(Octree *t1, const Grid& g1) const;
+        void Interact(Octree* node1, Octree* node2, Grid& grid) const;
+        // L push-down at this step
+        void EvaluateAccel(Octree* node, Grid& grid) const;
 
     public:
-        FMM(int p, double theta);
+        FMM(int p,
+            double theta,
+            int maxPerCell,
+            int maxPairwiseLimit,
+            const std::unique_ptr<const Kernels> kernels,
+            const std::unique_ptr<const Force> forceLaw);
 
         int GetP() const;
         double GetTheta() const;
         
-        Grid Calculate(const Grid& g1) const; 
+        Grid Calculate(const Grid& g1) const override;
 };
 
 }
