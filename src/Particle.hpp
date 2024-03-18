@@ -11,9 +11,9 @@ class Particle {
         double mCharge;
 
     public:
-        Vec pos;
-        Vec vel;
-        Vec accel;
+        Vec pos = Vec();
+        Vec vel = Vec();
+        Vec accel = Vec();
 
         Particle(double mass, double charge);
 

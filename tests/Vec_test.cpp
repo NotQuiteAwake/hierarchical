@@ -4,6 +4,8 @@
 
 namespace sim {
 
+static constexpr double PI() { return std::atan(1)*4; }
+
 TEST_CASE("testing vector class") {
     Vec v1 = Vec({1, 2, 3});
     Vec v2 = Vec({1, 1, 1});
@@ -18,7 +20,7 @@ TEST_CASE("testing vector class") {
     }
 
     SUBCASE("vector inner product") {
-        CHECK(v1.CalculateNorm() == doctest::Approx(sqrt(14)));
+        CHECK(v1.GetNorm() == doctest::Approx(sqrt(14)));
     }
 
     SUBCASE("vector cross product") {
@@ -33,6 +35,24 @@ TEST_CASE("testing vector class") {
     SUBCASE("vector addition") {
         Vec v3 = v1 + v2;
         CHECK(v3[2] == 4);
+    }
+
+    SUBCASE("spherical polar theta") {
+        Vec vec({1, 0, 1});
+        CHECK(vec.GetTheta() == doctest::Approx(PI() / 4));
+        vec = Vec({1, 0, -1});
+        CHECK(vec.GetTheta() == doctest::Approx(PI() * 3 / 4));
+    }
+
+    SUBCASE("spherical polar phi") {
+        Vec vec({1, 1, 0});
+        CHECK(vec.GetPhi() == doctest::Approx(PI() / 4));
+        vec = Vec({-1, sqrt(1.0 / 3), 1});
+        CHECK(vec.GetPhi() == doctest::Approx(5 * PI() / 6));
+        vec = Vec({-1, -sqrt(1.0 / 3), 1});
+        CHECK(vec.GetPhi() == doctest::Approx(7 * PI() / 6));
+        vec = Vec({sqrt(3), -1, 3});
+        CHECK(vec.GetPhi() == doctest::Approx(11 * PI() / 6));
     }
 
 }

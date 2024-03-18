@@ -9,12 +9,23 @@ namespace sim {
 // this is much better than passing in a *funptr...
 class Force {
     public:
+        // else leads to undefined behaviour
+        virtual ~Force() = default;
         // We can only do pairwise interactions...
         // Further require that forces obey Newton III.
         virtual Vec GetForce(const Particle& p1, const Particle& p2) const = 0;
 };
 
 class Gravity : public Force {
+    private:
+        double mG;
+
+    public:
+        Gravity(double G = 1);
+        Vec GetForce(const Particle& p1, const Particle& p2) const override;
+};
+
+class DummyForce : public Force {
     public:
         Vec GetForce(const Particle& p1, const Particle& p2) const override;
 };

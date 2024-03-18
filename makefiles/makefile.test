@@ -6,7 +6,7 @@ TEST_DIR = ./tests
 SRC_DIR = ./src
 
 CXX = g++
-CXX_FLAGS = -Wall -std=c++17 -Og -g -I$(TEST_DIR) -I$(SRC_DIR)
+CXX_FLAGS = -Wall -std=c++17 -O0 -g -I$(TEST_DIR) -I$(SRC_DIR)
 
 BIN = test
 

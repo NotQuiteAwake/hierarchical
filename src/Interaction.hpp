@@ -11,13 +11,18 @@ namespace sim {
 
 class Interaction {
     private:
-        const std::shared_ptr<const Force> mForceLaw;
+        const std::unique_ptr<const Force> mForceLaw;
 
     protected:
         Vec GetForce(const Particle& p1, const Particle& p2) const;
 
     public:
-        Interaction(const std::shared_ptr<const Force> forceLaw); // allows for polymorphism
+        // allows for polymorphism.
+        // default to dummy force as some calculations are force specific
+        // and ignore the forceLaw
+        Interaction(const std::unique_ptr<const Force> forceLaw
+                = std::unique_ptr<const Force>(new DummyForce())); 
+        virtual ~Interaction() = default;
         virtual Grid Calculate(const Grid& g1) const = 0;
 };
 

@@ -12,6 +12,7 @@ class Integrator {
          
     public:
         Integrator(double step);
+        virtual ~Integrator() = default;
         double GetStep() const;
 
         virtual Particle Evolve(const Particle& p1, const double step) const = 0;

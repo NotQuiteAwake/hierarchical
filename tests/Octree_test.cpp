@@ -1,7 +1,6 @@
 #include "doctest/doctest.h"
 #include "Octree.hpp"
 #include "Grid.hpp"
-#include "IO.hpp"
 
 namespace sim {
 
@@ -54,27 +53,29 @@ void CheckTree(Octree const* node) {
 TEST_CASE("test Octree") {
     Octant octant({{-1, 1}, {-1, 1}, {-1, 1}});
     Grid grid(octant); 
+    int p = 3;
 
     grid = AddTestParticles(grid);
 
+    SUBCASE("test M, F initialisation") {
+        std::unique_ptr<Octree> root = Octree::BuildTree(grid, 1, p);
+        CHECK(root->M.GetRows() == p);
+        CHECK(root->M.GetCols() == p);
+    }
+
     SUBCASE("test GetParticle") {
-        std::unique_ptr<Octree> root(new Octree(nullptr, grid, octant, 1));
-        root->BuildAsRoot();
+        std::unique_ptr<Octree> root = Octree::BuildTree(grid, 1, p);
         CHECK(root->GetParticle(3).pos[1] == doctest::Approx(-0.1));
         CHECK(root->GetParticle(1).pos[1] == doctest::Approx(-0.7));
     }
 
-    SUBCASE("test mP = 1") {
-        std::unique_ptr<Octree> root(new Octree(nullptr, grid, octant, 1));
-        root->BuildAsRoot();
-        // IO::DumpOctree(root.get());
+    SUBCASE("test maxParticles = 1") {
+        std::unique_ptr<Octree> root = Octree::BuildTree(grid, 1, p);
         CheckTree(root.get());
     }
 
     SUBCASE("test mP = 2") {
-        std::unique_ptr<Octree> root(new Octree(nullptr, grid, octant, 1));
-        root->BuildAsRoot();
-        // IO::DumpOctree(root.get());
+        std::unique_ptr<Octree> root = Octree::BuildTree(grid, 2, p);
         CheckTree(root.get());
     }
 }

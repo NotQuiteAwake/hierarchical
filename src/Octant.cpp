@@ -1,5 +1,6 @@
 #include <cassert>
 #include <algorithm>
+#include <cstring>
 #include "Octant.hpp"
 
 namespace sim {
@@ -12,7 +13,7 @@ Octant::Octant(const double (&lim)[mDim][2]) {
     }
 }
 
-Octant::Octant() {}
+Octant::Octant() { std::memset(limits, 0, sizeof limits); }
 
 bool Octant::Within(const Vec& vec) const {
     for (int i = 0; i < mDim; i++) {

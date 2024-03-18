@@ -1,13 +1,20 @@
 #include "Octree.hpp"
 #include <cassert>
-#include <iostream>
 
 namespace sim {
 
-Octree::Octree(Octree* parent, const Grid& grid, const Octant& new_oct,
-        int maxParticles)
-    : mParent(parent), mGrid(grid), octant(new_oct),
-    mMaxParticles(maxParticles) {};
+Octree::Octree(Octree* parent,
+               const Grid& grid,
+               const Octant& new_oct,
+               int maxParticles,
+               int p) :
+    mMaxParticles(maxParticles),
+    mP(p),
+    mParent(parent),
+    mGrid(grid),
+    octant(new_oct),
+    M(ComplexMatrix(p, p)),
+    F(ComplexMatrix(p, p)) {};
 
 void Octree::SetChild(int index, Octree* octree) {
     mLeafCount += bool(octree) - bool(mChildren[index]);
@@ -26,6 +33,10 @@ Octree* Octree::GetParent() {
     return mParent;
 }
 
+Octree const* Octree::GetParent() const {
+    return mParent;
+}
+
 double Octree::GetMaxLength() const {
     return octant.GetMaxLength();
 }
@@ -37,7 +48,8 @@ bool Octree::IsLeaf() const {
 void Octree::GenChildNode(int octantNumber) {
     assert(!mChildren[octantNumber]);
     const Octant new_oct = octant.GetOctant(octantNumber);
-    SetChild(octantNumber, new Octree(this, mGrid, new_oct, mMaxParticles));
+    // pointer handed to unique_ptr
+    SetChild(octantNumber, new Octree(this, mGrid, new_oct, mMaxParticles, mP));
 }
 
 void Octree::Split() {
@@ -48,10 +60,9 @@ void Octree::Split() {
         // empty octants are not instantiated
         if (mOctantSouls[i].size()) {
             GenChildNode(i);
-            Octree& child = *mChildren[i];
 
             for (int soul : mOctantSouls[i]) {
-                child.AddParticle(soul);
+                mChildren[i]->AddParticle(soul);
             }
             
             mOctantSouls[i].clear();    // information pushed down
@@ -61,27 +72,38 @@ void Octree::Split() {
 
 void Octree::AddParticle(int soul) {
     mSouls.push_back(soul);
-    const Vec& pos = GetParticle(soul).pos;
-    const int octant_num = octant.GetOctantNumber(pos);
+    const Particle& par = GetParticle(soul);
+    const Vec& par_pos = par.pos;
+    assert(octant.Within(par_pos));
+    const double par_mass = par.GetMass();
+    const int octant_num = octant.GetOctantNumber(par_pos);
+
+    com = (com * mass + par_pos * par_mass) / (mass + par_mass);
+    mass += par_mass;
     if (IsLeaf()) {
         mOctantSouls[octant_num].push_back(soul);
         // soul is pushed down via mOctantSouls
         if (mSouls.size() > mMaxParticles) { Split(); } 
-    } else { // need to push down soul directly
-        // this child node does not exist 
+    } else { 
+        // soul is pushed down directly
         if (!GetChild(octant_num)) {
+            // this child node does not exist 
             GenChildNode(octant_num); 
         }
         GetChild(octant_num)->AddParticle(soul);
     }
-    
 }
 
-void Octree::BuildAsRoot() {
-    assert(mParent == nullptr); // must be root
-    for (int i = 0; i < mGrid.GetSize(); i++) {
-        AddParticle(i);
+std::unique_ptr<Octree> Octree::BuildTree(const Grid& grid,
+                                          int maxParticles,
+                                          int p) {
+    std::unique_ptr<Octree> root(
+            new Octree(nullptr, grid, grid.GetLimits(), maxParticles, p)
+            );
+    for (int i = 0; i < grid.GetSize(); i++) {
+        root->AddParticle(i);
     }
+    return root;
 }
 
 Particle Octree::GetParticle(int soul) const {
