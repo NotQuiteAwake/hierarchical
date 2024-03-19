@@ -11,7 +11,8 @@ namespace sim {
 
 namespace IO {
 
-template<typename T> static std::vector<T> LoadVector(std::istream& stream) {
+namespace {
+template<typename T> std::vector<T> LoadVector(std::istream& stream) {
     int cnt; stream >> cnt;
     std::vector<T> vector;
     for (int i = 0; i < cnt; i++) {
@@ -21,8 +22,23 @@ template<typename T> static std::vector<T> LoadVector(std::istream& stream) {
     return vector;
 }
 
-template<typename T> static void DumpVector(const std::vector<T> vector,
-        std::ostream& stream) {
+template<typename T> Matrix<T> LoadMatrix(std::istream& stream) {
+    int nrows, ncols;
+    stream >> nrows >> ncols;
+    Matrix<T> matrix(nrows, ncols);
+    for (int i = 0; i <= nrows; i++) {
+        // note our convention
+        for (int j = -ncols; j <= ncols; j++) {
+            stream >> matrix[i][j];
+        }
+    }
+    return matrix;
+}
+
+template<typename T> void DumpVector(
+        const std::vector<T> vector,
+        std::ostream& stream
+        ) {
     stream << vector.size();
     for (int i = 0; i < vector.size(); i++) {
         stream << " " << vector[i];
@@ -30,6 +46,21 @@ template<typename T> static void DumpVector(const std::vector<T> vector,
     stream << std::endl;
 }
 
+template<typename T> void DumpMatrix(
+        const Matrix<T> matrix,
+        std::ostream& stream
+        ) {
+    int nrows = matrix.GetRows();
+    int ncols = matrix.GetCols();
+    stream << nrows << " " << ncols << std::endl;
+    for (int i = 0; i <= nrows; i++) {
+        for (int j = -ncols; j <= ncols; j++) {
+            stream << matrix[i][j] << " ";
+        }
+        stream << std::endl;
+    }
+}
+}
 
 Octant LoadOctant(std::istream& stream) { // TODO: does istream need to &
     Octant octant = Octant();
@@ -78,10 +109,6 @@ void DumpParticle(const Particle& par, std::ostream& stream) {
     DumpVec(par.accel, stream);
 }
 
-void DumpParticle(const Particle& par) {
-    DumpParticle(par, std::cout);
-}
-
 void DumpGrid(const Grid& grid, std::ostream& stream) {
     stream << "BEGIN GRID" << std::endl;
 
@@ -98,10 +125,6 @@ void DumpGrid(const Grid& grid, std::ostream& stream) {
     
 }
 
-void DumpGrid(const Grid& grid) {
-    DumpGrid(grid, std::cout);
-}
-
 void DumpGrid(const Grid& grid, const std::string& fileName) {
     std::ofstream stream;
     stream.open(fileName, std::ios::out); // TODO: ios::noreplace?
@@ -112,9 +135,9 @@ void DumpGrid(const Grid& grid, const std::string& fileName) {
 }
 
 Grid LoadGrid(std::istream& stream) {
-    std::string line;
-    stream >> line;
-    assert(line == "BEGIN GRID");
+    std::string flag, token;
+    stream >> flag >> token;
+    assert(flag == "BEGIN" && token == "GRID");
         
     Grid grid = Grid(LoadOctant(stream));
     int size;
@@ -123,14 +146,10 @@ Grid LoadGrid(std::istream& stream) {
         grid.AddParticle(LoadParticle(stream));
     }
     
-    stream >> line;
-    assert(line == "END GRID");
+    stream >> flag >> token;
+    assert(flag == "END" && token == "GRID");
     
     return grid;
-}
-
-Grid LoadGrid() {
-    return LoadGrid(std::cin);
 }
 
 Grid LoadGrid(const Grid& grid, const std::string& fileName) {
@@ -140,17 +159,18 @@ Grid LoadGrid(const Grid& grid, const std::string& fileName) {
     return LoadGrid(stream);
 }
 
-static void DumpOctreeNode(Octree const* node, std::ostream& stream) {
+namespace {
+void DumpOctreeNode(Octree const* node, std::ostream& stream) {
     DumpOctant(node->octant, stream);
     DumpVec(node->com, stream);
     stream << node->mass << std::endl;
 
     DumpVector(node->mSouls, stream);
-    DumpVector(node->M, stream);
-    DumpVector(node->L, stream);
+    DumpMatrix(node->M, stream);
+    DumpMatrix(node->F, stream);
 }
 
-static void DumpOctreeHelper(Octree const* node, std::ostream& stream) {
+void DumpOctreeHelper(Octree const* node, std::ostream& stream) {
     assert(node);
     DumpOctreeNode(node, stream);
 
@@ -167,16 +187,14 @@ static void DumpOctreeHelper(Octree const* node, std::ostream& stream) {
     } 
     stream << -1 << std::endl;
 }
-
-void DumpOctree(Octree const* octree, std::ostream& stream) {
-    stream << "BEGIN OCTREE" << std::endl;
-    stream << octree->GetMaxParticles() << std::endl;
-    DumpOctreeHelper(octree, stream);
-    stream << "END OCTREE" << std::endl;
 }
 
-void DumpOctree(Octree const* octree) {
-    DumpOctree(octree, std::cout);
+void DumpOctree(Octree const* root, std::ostream& stream) {
+    stream << "BEGIN OCTREE" << std::endl;
+    stream << root->GetMaxParticles() << " ";
+    stream << root->GetP() << std::endl;
+    DumpOctreeHelper(root, stream);
+    stream << "END OCTREE" << std::endl;
 }
 
 void DumpOctree(Octree const* octree, const std::string& fileName) {
@@ -186,7 +204,9 @@ void DumpOctree(Octree const* octree, const std::string& fileName) {
     DumpOctree(octree, stream);
 }
 
-static void LoadOctreeNode(Octree* node, std::istream& stream) {
+namespace {
+void LoadOctreeNode(Octree* node, std::istream& stream) {
+    typedef std::complex<double> cdouble;
     node->octant = LoadOctant(stream);
     node->com = LoadVec(stream);
     stream >> node->mass;
@@ -194,41 +214,43 @@ static void LoadOctreeNode(Octree* node, std::istream& stream) {
     node->mSouls = LoadVector<int>(stream);
     // mOctantSouls is not recovered as a compromise for readability.
     // it is irrelevant for any complete tree.
-    node->M = LoadVector<double>(stream);
-    node->L = LoadVector<double>(stream);
+    node->M = LoadMatrix<cdouble>(stream);
+    node->F = LoadMatrix<cdouble>(stream);
 }
 
-static void LoadOctreeHelper(Octree* node, const Grid& grid, std::istream& stream) {
+void LoadOctreeHelper(Octree* node, const Grid& grid, std::istream& stream) {
     LoadOctreeNode(node, stream);
     int child_octant_num; stream >> child_octant_num;
     while (child_octant_num != -1) {
         node->SetChild(child_octant_num,
-                new Octree(node, grid, Octant(), node->GetMaxParticles()));
-        LoadOctreeNode(node->GetChild(child_octant_num), stream);
+                new Octree(node,
+                    grid,
+                    Octant(),
+                    node->GetMaxParticles(),
+                    node->GetP())
+                );
+        LoadOctreeHelper(node->GetChild(child_octant_num), grid, stream);
         stream >> child_octant_num;
     } 
 }
-
-std::unique_ptr<Octree> LoadOctree(const Grid& grid, std::istream& stream) {
-    std::string line;
-    stream >> line;
-    assert(line == "BEGIN OCTREE");
-
-    int max_particles;
-    stream >> max_particles;
-
-    std::unique_ptr<Octree> root; 
-    root.reset(new Octree(nullptr, grid, Octant(), max_particles));
-    LoadOctreeHelper(root.get(), grid, stream);
-
-    stream >> line;
-    assert(line == "END OCTREE");
-    
-    return root;
 }
 
-std::unique_ptr<Octree> LoadOctree(const Grid& grid) {
-    return LoadOctree(grid, std::cin);
+std::unique_ptr<Octree> LoadOctree(const Grid& grid, std::istream& stream) {
+    std::string flag, token;
+    stream >> flag >> token;
+    assert(flag == "BEGIN" && token == "OCTREE");
+
+    int max_particles, p;
+    stream >> max_particles >> p;
+
+    std::unique_ptr<Octree> root; 
+    root.reset(new Octree(nullptr, grid, Octant(), max_particles, p));
+    LoadOctreeHelper(root.get(), grid, stream);
+
+    stream >> flag >> token;
+    assert(flag == "END" && token == "OCTREE");
+    
+    return root;
 }
 
 std::unique_ptr<Octree> LoadOctree(const Grid& grid,

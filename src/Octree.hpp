@@ -63,6 +63,7 @@ class Octree {
         void AddParticle(int soul);
         Particle GetParticle(int soul) const;
         int GetMaxParticles() const;
+        int GetP() const;
 
         static std::unique_ptr<Octree> BuildTree(const Grid& grid,
                                                  int maxParticles,

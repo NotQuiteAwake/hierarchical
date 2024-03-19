@@ -110,6 +110,10 @@ Particle Octree::GetParticle(int soul) const {
     return mGrid[soul];
 }
 
+int Octree::GetP() const {
+    return mP;
+}
+
 int Octree::GetMaxParticles() const {
     return mMaxParticles;
 }
