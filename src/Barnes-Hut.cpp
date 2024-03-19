@@ -34,7 +34,7 @@ Particle& BarnesHut::EvaluateAccel(
         }
     } else if (IsFarAway(node, par)) {
         // employ multiple M2P kernel
-        par = mKernels->M2P(node, par);
+        mKernels->M2P(node, par);
     } else {
         // not far enough away, descend into children
         for (int i = 0; i < node->mBoxes; i++) {
@@ -47,12 +47,12 @@ Particle& BarnesHut::EvaluateAccel(
 
 BarnesHut::BarnesHut(int p,
                      double theta,
-                     std::unique_ptr<const Kernels> kernels,
-                     std::unique_ptr<const Force> forceLaw) :
-    Interaction(std::move(forceLaw)),
+                     Kernels const* kernels,
+                     Force const* forceLaw) :
+    Interaction(forceLaw),
     mP(p),
     mTheta(theta),
-    mKernels(std::move(kernels)) {};
+    mKernels(kernels) {};
 
 int BarnesHut::GetP() const {
     return mP;

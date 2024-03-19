@@ -1,7 +1,6 @@
 #ifndef FMMHEADERDEF
 #define FMMHEADERDEF
 
-#include <memory>
 #include "Octree.hpp"
 #include "Kernels.hpp"
 #include "Interaction.hpp"
@@ -14,7 +13,7 @@ class FMM : public Interaction {
         const double mTheta;
         const int mMaxPerCell;
         const int mMaxPairwiseLimit;
-        const std::unique_ptr<const Kernels> mKernels;
+        Kernels const* mKernels;
 
         bool MAC(const Octree* node1, const Octree* node2) const;
 
@@ -27,8 +26,8 @@ class FMM : public Interaction {
             double theta,
             int maxPerCell,
             int maxPairwiseLimit,
-            const std::unique_ptr<const Kernels> kernels,
-            const std::unique_ptr<const Force> forceLaw);
+            Kernels const* kernels,
+            Force const* forceLaw);
 
         int GetP() const;
         double GetTheta() const;

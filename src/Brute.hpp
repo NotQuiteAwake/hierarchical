@@ -8,7 +8,7 @@ namespace sim {
 
 class Brute : public Interaction {
     public:
-        Brute(std::unique_ptr<const Force> forceLaw);
+        Brute(Force const* forceLaw);
         Grid Calculate(const Grid& g1) const override;
 };
 

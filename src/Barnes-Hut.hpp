@@ -1,7 +1,6 @@
 #ifndef BARNESHUTHEADERDEF
 #define BARNESHUTHEADERDEF
 
-#include <memory>
 #include "Grid.hpp"
 #include "Octree.hpp"
 #include "Force.hpp"
@@ -14,7 +13,7 @@ class BarnesHut : public Interaction {
     private:
         const int mP = 1; // TODO: order of multipole expansion
         const double mTheta;
-        const std::unique_ptr<const Kernels> mKernels;
+        Kernels const* mKernels;
 
         bool IsFarAway(Octree const* node, const Particle& par) const;
         // soul needed to assert identity
@@ -27,8 +26,8 @@ class BarnesHut : public Interaction {
     public:
         BarnesHut(int p,
                   double theta,
-                  std::unique_ptr<const Kernels> kernels,
-                  std::unique_ptr<const Force> forceLaw);
+                  Kernels const* mKernels,
+                  Force const* forceLaw);
        
         int GetP() const;
         double GetTheta() const;

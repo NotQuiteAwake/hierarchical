@@ -2,8 +2,8 @@
 
 namespace sim {
 
-Brute::Brute(std::unique_ptr<const Force> forceLaw):
-    Interaction(std::move(forceLaw)) {};
+Brute::Brute(Force const* forceLaw):
+    Interaction(forceLaw) {};
 
 Grid Brute::Calculate(const Grid& g1) const {
     int size = g1.GetSize();
