@@ -6,7 +6,7 @@ TEST_DIR = ./tests
 SRC_DIR = ./src
 
 CXX = g++
-CXX_FLAGS = -Wall -std=c++17 -O2 -I$(TEST_DIR) -I$(SRC_DIR)
+CXX_FLAGS = -std=c++17 -Wall -Wextra -O2 -I$(TEST_DIR) -I$(SRC_DIR)
 
 BIN = hchl
 
