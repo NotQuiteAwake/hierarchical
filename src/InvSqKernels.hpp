@@ -19,7 +19,7 @@ class InvSqKernels : public Kernels {
         cdouble Gamma(const Vec& v, int n, int m) const;
         cdouble Theta(const Vec& v, int n, int m) const;
 
-        Particle AddAccel(const Particle& par,
+        void AddAccel(Particle& par,
                 const ComplexMatrix& F) const override;
         void P2M(Octree* leaf) const override;
         void M2M(Octree const* child, Octree* parent) const override;

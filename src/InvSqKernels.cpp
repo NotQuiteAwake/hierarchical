@@ -38,15 +38,11 @@ InvSqKernels::cdouble InvSqKernels::Theta(const Vec& v, int n, int m) const {
 
 }
 
-Particle InvSqKernels::AddAccel(const Particle& p1,
+void InvSqKernels::AddAccel(Particle& par,
         const ComplexMatrix& psi) const {
-    Particle par = p1;
     // note psi[1][0] should just be real.
     par.accel -= Vec({psi[1][1].real(), psi[1][1].imag(), psi[1][0].real()})
         * par.GetCharge() / par.GetMass();
-
-    return par;
-
 }
 
 void InvSqKernels::P2M(Octree* leaf) const {

@@ -14,8 +14,7 @@ class Kernels {
         Kernels(int p);
         virtual ~Kernels() = default;
 
-        // virtual particles... like photons in QED...
-        virtual Particle AddAccel(const Particle& par,
+        virtual void AddAccel(Particle& par,
                 const ComplexMatrix& psi) const = 0;
 
         virtual void P2M(Octree* leaf) const = 0;
@@ -23,12 +22,12 @@ class Kernels {
 
         virtual ComplexMatrix M2X(Octree const* source, const Vec& s) const = 0;
         void M2L(Octree const* source, Octree* sink) const;
-        Particle M2P(Octree const* source, const Particle& sinkPar) const;
+        void M2P(Octree const* source, Particle& sinkPar) const;
 
         virtual ComplexMatrix L2X(Octree const* previous,
                 const Vec& sp) const = 0;
         void L2L(Octree const* parent, Octree* child) const;
-        Particle L2P(Octree* leaf, const Particle& containedPar) const;
+        void L2P(Octree const* leaf, Particle& containedPar) const;
         
         void CalculateM(Octree* node) const;
 };
