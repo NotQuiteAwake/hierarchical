@@ -1,3 +1,4 @@
+#include <memory>
 #include "doctest/doctest.h"
 #include "Integrator.hpp"
 
@@ -14,7 +15,7 @@ Grid AnalyticConstAccel(const Grid& g1, double time) {
 }
 
 // test with constant acceleration scenario
-void TestIntegrator(std::shared_ptr<Integrator> integrator) {
+void TestIntegrator(std::unique_ptr<const Integrator> integrator) {
     Grid grid = Grid(Octant({{-10, 10}, {-10, 10}, {-10, 10}}));
     double time = 1;
     int n_steps = int(1e5);
@@ -56,19 +57,19 @@ TEST_CASE("test Integrator") {
     // not really significant; Just a placeholder.
     // We use evolve(grid, step) functions to manually overwrite the behaviour.
     double dummy_step = 0.001;
-    std::shared_ptr<Integrator> euler_int(new Euler(dummy_step));
-    std::shared_ptr<Integrator> lf_int(new LeapFrog(dummy_step));
+    std::unique_ptr<Integrator> euler_int(new Euler(dummy_step));
+    std::unique_ptr<Integrator> lf_int(new LeapFrog(dummy_step));
     
     SUBCASE("test GetStep") {
         CHECK(euler_int->GetStep() == doctest::Approx(dummy_step));
     }
 
     SUBCASE("test Euler") {
-        TestIntegrator(euler_int);
+        TestIntegrator(std::make_unique<Euler>(dummy_step));
     }
 
     SUBCASE("test Leapfrog") {
-        TestIntegrator(lf_int);
+        TestIntegrator(std::make_unique<LeapFrog>(dummy_step));
     }
 }
 
