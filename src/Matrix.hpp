@@ -3,29 +3,9 @@
 
 #include <vector>
 #include <complex>
+#include "Row.hpp"
 
 namespace sim {
-
-template<typename T> class Matrix;
-
-template<typename T> class Row {
-    private:
-        std::vector<T> mRow;
-        int mColCnt;
-
-        void Resize(int ncols);
-
-    public:
-        // alternatively employ Matrix* mat
-        Row(int ncols);
-        Row();
-
-        const T& operator[](int colIndex) const;
-        T& operator[](int colIndex);
-
-    friend class Matrix<T>;
-};
-
 
 template<typename T> class Matrix {
     private: 
@@ -39,6 +19,7 @@ template<typename T> class Matrix {
 
         const Row<T>& operator[](int rowIndex) const;
         Row<T>& operator[](int rowIndex);
+        Matrix<T>& operator+=(const Matrix<T>& otherMatrix);
 
         int GetRows() const;
         int GetCols() const;

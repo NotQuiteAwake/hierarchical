@@ -92,6 +92,14 @@ Vec& Vec::operator-=(const Vec& otherVec) {
     return *this;
 }
 
+// exact identity. Don't care about floating point error.
+bool Vec::operator==(const Vec& otherVec) const {
+    for (int i = 0; i < Vec::mDim; i++) {
+        if (mCoords[i] != otherVec[i]) return false;
+    }
+    return true;
+}
+
 double Vec::GetNorm() const {
     double norm = 0;
     for (int i = 0; i < Vec::mDim; i++) {

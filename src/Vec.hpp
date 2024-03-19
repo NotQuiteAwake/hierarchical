@@ -33,6 +33,8 @@ class Vec {
         Vec& operator+=(const Vec& otherVec);
         Vec& operator-=(const Vec& otherVec);
 
+        bool operator==(const Vec& otherVec) const;
+
         double GetNorm() const;
         // spherical polar
         double GetTheta() const;

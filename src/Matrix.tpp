@@ -5,27 +5,6 @@
 
 namespace sim {
 
-template<typename T> void Row<T>::Resize(int ncols) {
-    // must work from -ncols to ncols, inclusive
-    mRow.resize(ncols * 2 + 1);
-    mColCnt = ncols;
-}
-
-template<typename T> Row<T>::Row() {}
-
-template<typename T> Row<T>::Row(int ncols) {
-    Resize(ncols);
-}
-
-template<typename T> const T& Row<T>::operator[](int colIndex) const {
-    // shift all indices to >= 0
-    return mRow[colIndex + mColCnt];
-}
-
-template<typename T> T& Row<T>::operator[](int colIndex) {
-    return mRow[colIndex + mColCnt];
-}
-
 // pre-allocate
 template<typename T> Matrix<T>::Matrix(int nrows, int ncols) {
     Resize(nrows, ncols);
@@ -47,6 +26,17 @@ template<typename T> const Row<T>& Matrix<T>::operator[](int rowIndex) const {
 
 template<typename T> Row<T>& Matrix<T>::operator[](int rowIndex) {
     return mRows[rowIndex];
+}
+
+template<typename T> Matrix<T>& Matrix<T>::operator+=(
+        const Matrix<T>& otherMatrix
+        ) {
+    assert(mRowCnt == otherMatrix.GetRows());
+    assert(mColCnt == otherMatrix.GetCols());
+    for (int i = 0; i <= mRowCnt; i++) {
+        mRows[i] += otherMatrix[i];
+    }
+    return *this;
 }
 
 template<typename T> int Matrix<T>::GetRows() const {
