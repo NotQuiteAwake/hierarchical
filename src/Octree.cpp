@@ -12,7 +12,7 @@ Octree::Octree(Octree* parent,
     mP(p),
     mParent(parent),
     mGrid(grid),
-    octant(new_oct),
+    mOctant(new_oct),
     M(ComplexMatrix(p, p)),
     F(ComplexMatrix(p, p)) {};
 
@@ -38,7 +38,7 @@ Octree const* Octree::GetParent() const {
 }
 
 double Octree::GetMaxLength() const {
-    return octant.GetMaxLength();
+    return mOctant.GetMaxLength();
 }
 
 bool Octree::IsLeaf() const {
@@ -47,7 +47,7 @@ bool Octree::IsLeaf() const {
 
 void Octree::GenChildNode(int octantNumber) {
     assert(!mChildren[octantNumber]);
-    const Octant new_oct = octant.GetOctant(octantNumber);
+    const Octant new_oct = mOctant.GetOctant(octantNumber);
     // pointer handed to unique_ptr
     SetChild(octantNumber, new Octree(this, mGrid, new_oct, mMaxParticles, mP));
 }
@@ -70,13 +70,17 @@ void Octree::Split() {
     }
 }
 
+Octant Octree::GetOctant() const {
+    return mOctant;
+}
+
 void Octree::AddParticle(int soul) {
     mSouls.push_back(soul);
     const Particle& par = GetParticle(soul);
     const Vec& par_pos = par.pos;
-    assert(octant.Within(par_pos));
+    assert(mOctant.Within(par_pos));
     const double par_mass = par.GetMass();
-    const int octant_num = octant.GetOctantNumber(par_pos);
+    const int octant_num = mOctant.GetOctantNumber(par_pos);
 
     com = (com * mass + par_pos * par_mass) / (mass + par_mass);
     mass += par_mass;
@@ -94,11 +98,20 @@ void Octree::AddParticle(int soul) {
     }
 }
 
+// prevent accidental overwrites.
+// Octant should really be constant, but this is for convenience of the IO
+// library to initialise a node. Under normal contexts this should not be
+// called.
+void Octree::SetOctant(const Octant& octant) {
+    assert(!mOctant.IsInitialised());
+    mOctant = octant;
+} 
+
 std::unique_ptr<Octree> Octree::BuildTree(const Grid& grid,
                                           int maxParticles,
                                           int p) {
     std::unique_ptr<Octree> root(
-            new Octree(nullptr, grid, grid.GetLimits(), maxParticles, p)
+            new Octree(nullptr, grid, grid.GetOctant(), maxParticles, p)
             );
     for (int i = 0; i < grid.GetSize(); i++) {
         root->AddParticle(i);

@@ -1,3 +1,4 @@
+#include <cassert>
 #include "Particle.hpp"
 
 namespace sim {
@@ -5,7 +6,9 @@ namespace sim {
 // C++ constructs other members nontheless.
 Particle::Particle(double mass, double charge):
     mMass(mass),
-    mCharge(charge) {}
+    mCharge(charge) {
+        assert(mass > 0);
+    }
 
 double Particle::GetMass() const {
     return mMass;

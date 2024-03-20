@@ -40,6 +40,8 @@ class Vec {
         double GetTheta() const;
         double GetPhi() const;
         
+        static Vec FromSpherical(double r, double theta, double phi);
+
         friend double DotProduct(const Vec& v1, const Vec& v2);
         friend Vec CrossProduct(const Vec& v1, const Vec& v2);
 

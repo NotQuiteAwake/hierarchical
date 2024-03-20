@@ -62,12 +62,13 @@ template<typename T> void DumpMatrix(
 }
 }
 
-Octant LoadOctant(std::istream& stream) { // TODO: does istream need to &
-    Octant octant = Octant();
+Octant LoadOctant(std::istream& stream) {
+    // TODO: check isinitialised bit
+    double lim[Octant::mDim][2];
     for (int i = 0; i < Octant::mDim; i++) {
-        stream >> octant[i][0] >> octant[i][1];
+        stream >> lim[i][0] >> lim[i][1];
     }
-    return octant;
+    return Octant(lim);
 }
 
 Vec LoadVec(std::istream& stream) {
@@ -135,6 +136,7 @@ void DumpGrid(const Grid& grid, const std::string& fileName) {
 }
 
 Grid LoadGrid(std::istream& stream) {
+    // TODO: maintain maxLim property
     std::string flag, token;
     stream >> flag >> token;
     assert(flag == "BEGIN" && token == "GRID");
@@ -161,7 +163,7 @@ Grid LoadGrid(const Grid& grid, const std::string& fileName) {
 
 namespace {
 void DumpOctreeNode(Octree const* node, std::ostream& stream) {
-    DumpOctant(node->octant, stream);
+    DumpOctant(node->GetOctant(), stream);
     DumpVec(node->com, stream);
     stream << node->mass << std::endl;
 
@@ -207,7 +209,7 @@ void DumpOctree(Octree const* octree, const std::string& fileName) {
 namespace {
 void LoadOctreeNode(Octree* node, std::istream& stream) {
     typedef std::complex<double> cdouble;
-    node->octant = LoadOctant(stream);
+    node->SetOctant(LoadOctant(stream));
     node->com = LoadVec(stream);
     stream >> node->mass;
     

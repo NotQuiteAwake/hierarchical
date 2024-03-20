@@ -8,17 +8,41 @@ namespace sim {
 Octant::Octant(const double (&lim)[mDim][2]) {
     for (int i = 0; i < mDim; i++) {
         for (int j = 0; j < 2; j++) {
-            limits[i][j] = lim[i][j];
+            mLimits[i][j] = lim[i][j];
+        }
+        double diff = mLimits[i][1] - mLimits[i][0];
+        assert(diff >= 0);
+    }
+    mInitialised = true;
+}
+
+Octant::Octant() { std::memset(mLimits, 0, sizeof mLimits); }
+
+void Octant::Relax(const Vec& vec) {
+    if (!mInitialised) {
+        // only use of mInitialised
+        for (int i = 0; i < mDim; i++) {
+            mLimits[i][0] = vec[i] - margin;
+            mLimits[i][1] = vec[i] + margin;
+        }
+        mInitialised = true;
+    }
+    else {
+        for (int i = 0; i < Vec::mDim; i++) {
+            mLimits[i][0] = std::min(vec[i] - margin, mLimits[i][0]);
+            mLimits[i][1] = std::max(vec[i] + margin, mLimits[i][1]);
         }
     }
 }
 
-Octant::Octant() { std::memset(limits, 0, sizeof limits); }
+bool Octant::IsInitialised() const {
+    return mInitialised;
+}
 
 bool Octant::Within(const Vec& vec) const {
     for (int i = 0; i < mDim; i++) {
         // NOTE interval convention
-        if (!(limits[i][0] <= vec[i] && vec[i] < limits[i][1])) return false;
+        if (!(mLimits[i][0] <= vec[i] && vec[i] < mLimits[i][1])) return false;
     }
     return true;
 }
@@ -27,7 +51,7 @@ int Octant::GetOctantNumber(const Vec& vec) const {
     int octant_number = 0;
     assert (Within(vec));
     for (int i = 0; i < mDim; i++) {
-        double mid = (limits[i][0] + limits[i][1]) / 2;
+        double mid = (mLimits[i][0] + mLimits[i][1]) / 2;
         octant_number |= (mid <= vec[i]) << i;
     }
     return octant_number;
@@ -35,15 +59,15 @@ int Octant::GetOctantNumber(const Vec& vec) const {
 
 Octant Octant::GetOctant(const Octant& octant, int octantNumber) {
     double new_lim[mDim][2];
-    const double (&limits)[mDim][2] = octant.limits;
+    const double (&mLimits)[mDim][2] = octant.mLimits;
     for (int i = 0; i < mDim; i++) {
         // from low to high bits, octants encode xyz respectively.
-        double mid = (limits[i][0] + limits[i][1]) / 2;
+        double mid = (mLimits[i][0] + mLimits[i][1]) / 2;
         if (octantNumber & (1 << i)) {
             new_lim[i][0] = mid;
-            new_lim[i][1] = limits[i][1];
+            new_lim[i][1] = mLimits[i][1];
         } else {
-            new_lim[i][0] = limits[i][0];
+            new_lim[i][0] = mLimits[i][0];
             new_lim[i][1] = mid;
         }
     }
@@ -51,30 +75,25 @@ Octant Octant::GetOctant(const Octant& octant, int octantNumber) {
 }
 
 double Octant::GetMaxLength() const {
-    double lmax = 0;
+    double max_length = 0;
     for (int i = 0; i < mDim; i++) {
-        lmax = std::max(lmax, limits[i][1] - limits[i][0]);
+        max_length = std::max(max_length, mLimits[i][1] - mLimits[i][0]);
     }
-    return lmax;
+    return max_length;
 }
 
 Octant Octant::GetOctant(int octantNumber) const {
     return GetOctant(*this, octantNumber);
 }
 
-double* Octant::operator[](int index) {
-    return limits[index];
-}
-
 double const* Octant::operator[](int index) const {
-    return limits[index];
+    return mLimits[index];
 }
-
 
 bool Octant::operator==(const Octant& otherOctant) const {
     for (int i = 0; i < Octant::mDim; i++) {
         for (int j = 0; j < 2; j++) {
-            if (limits[i][j] != otherOctant[i][j]) {
+            if (mLimits[i][j] != otherOctant[i][j]) {
                 return false;
             }
         }

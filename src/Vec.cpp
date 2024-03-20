@@ -141,6 +141,13 @@ double Vec::GetPhi() const {
     }
 }
 
+Vec Vec::FromSpherical(double r, double theta, double phi) {
+    double x = r * std::sin(theta) * std::cos(phi);
+    double y = r * std::sin(theta) * std::sin(phi);
+    double z = r * std::cos(theta);
+    return Vec({x, y, z});
+}
+
 double DotProduct(const Vec& v1, const Vec& v2) {
     double product = 0;
     for (int i = 0; i < Vec::mDim; i++) {

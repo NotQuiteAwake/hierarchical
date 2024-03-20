@@ -32,7 +32,7 @@ void CheckTree(Octree const* node) {
     if (!node) return;
     for (int soul : node->mSouls) {
         const Particle& par = node->GetParticle(soul);
-        CHECK(node->octant.Within(par.pos));
+        CHECK(node->GetOctant().Within(par.pos));
     }
     if (node->IsLeaf()) {
         CHECK(node->GetMaxParticles() >= node->mSouls.size());

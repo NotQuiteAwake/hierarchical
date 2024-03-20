@@ -34,9 +34,7 @@ void TestTriangle(Interaction const* interaction) {
         {3.0 / 4, sqrt(3) / 4, 0},
         {-3.0 / 4, sqrt(3) / 4, 0}
     };
-    const Octant octant({{-1, 5}, {-1, 5}, {-1, 5}});
-
-    Grid grid = Grid(octant);
+    Grid grid;
     grid = MakeTriangleGrid(grid);
     grid = interaction->Calculate(grid);
 
@@ -77,8 +75,7 @@ void TestWellSeparated(
 
     srand(0);
     
-    const Octant octant({{-2, 12}, {-2, 12}, {-2, 12}});
-    Grid grid = Grid(octant);
+    Grid grid;
 
     grid = MakeCluster(grid, Vec({2, 2, 2}), 1, numMass1);
     grid = MakeCluster(grid, Vec({10, 10, 10}), 1, numMass2);

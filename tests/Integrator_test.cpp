@@ -16,7 +16,7 @@ Grid AnalyticConstAccel(const Grid& g1, double time) {
 
 // test with constant acceleration scenario
 void TestIntegrator(std::unique_ptr<const Integrator> integrator) {
-    Grid grid = Grid(Octant({{-10, 10}, {-10, 10}, {-10, 10}}));
+    Grid grid;
     double time = 1;
     int n_steps = int(1e5);
     double step_size = time / n_steps;

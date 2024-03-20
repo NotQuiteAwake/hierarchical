@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <cassert>
 #include "Particle.hpp"
 #include "Grid.hpp"
 #include "Octant.hpp"
@@ -23,6 +24,7 @@ class Octree {
         Octree* mParent = nullptr; 
         std::unique_ptr<Octree> mChildren[mBoxes];
         const Grid& mGrid;
+        Octant mOctant;
 
         bool mLeafCount = 0;
 
@@ -31,7 +33,6 @@ class Octree {
         void Split(); // split the tree into the 8 octants
 
     public:
-        Octant octant;
         std::vector<int> mOctantSouls[mBoxes]; // number pointer to particles
         std::vector<int> mSouls;
 
@@ -57,13 +58,15 @@ class Octree {
         Octree const* GetChild(int index) const;
         Octree* GetParent();
         Octree const* GetParent() const;
-
         double GetMaxLength() const;
         bool IsLeaf() const;
-        void AddParticle(int soul);
         Particle GetParticle(int soul) const;
         int GetMaxParticles() const;
         int GetP() const;
+        Octant GetOctant() const;
+
+        void AddParticle(int soul);
+        void SetOctant(const Octant& octant);
 
         static std::unique_ptr<Octree> BuildTree(const Grid& grid,
                                                  int maxParticles,

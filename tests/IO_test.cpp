@@ -76,7 +76,7 @@ void CheckOctree(Octree* n1, Octree* n2) {
         return;
     }
 
-    CheckOctant(n1->octant, n2->octant);
+    CheckOctant(n1->GetOctant(), n2->GetOctant());
     for (int i = 0; i < n1->mSouls.size(); i++) {
         CHECK(n1->mSouls[i] == n2->mSouls[i]);
         // don't check mOctantSouls; n2 does not load this.

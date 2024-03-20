@@ -9,16 +9,18 @@ namespace sim {
 
 class Grid {
     private:
+        Octant mMaxLim;
         Octant mOctant;
-        // note, that vector will allocate its memory on the heap. GREAT!
-        // THANK GOD!
-        std::vector<Particle> mParticles;
+
+        std::vector<Particle> mParticles; // heap allocated
 
     public:
-        Grid(Octant octant);
+        Grid(Octant maxLim = Octant());
+        Grid(int size, Octant maxLim = Octant());
 
         int GetSize() const;
         const Octant GetLimits() const;
+        const Octant GetOctant() const;
 
         Particle& operator[](int index);
         Particle operator[](int index) const;
