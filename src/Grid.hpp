@@ -26,6 +26,7 @@ class Grid {
         Particle operator[](int index) const;
 
         void AddParticle(const Particle& par);
+        void SetOctant(const Octant& octant);
         void Reserve(int size);
 };
 

@@ -1,3 +1,4 @@
+#include <cassert>
 #include "Grid.hpp"
 
 namespace sim {
@@ -39,6 +40,11 @@ void Grid::AddParticle(const Particle& par) {
     } else {
         mParticles.push_back(par);
     }
+}
+
+void Grid::SetOctant(const Octant& octant) {
+    assert(!mOctant.IsInitialised());
+    mOctant = octant;
 }
 
 void Grid::Reserve(int size) {

@@ -50,6 +50,7 @@ void CheckParticles(const Particle& p1, const Particle& p2) {
 
 
 void CheckOctant(const Octant& o1, const Octant& o2) {
+    CHECK(o1.IsInitialised() == o2.IsInitialised());
     for (int i = 0; i < Octant::mDim; i++) {
         for (int j = 0; j < 2; j++) {
             CHECK(o1[i][j] == doctest::Approx(o2[i][j]));
@@ -124,10 +125,20 @@ TEST_CASE("test IO") {
     FillOctree(root.get());
 
     SUBCASE("test Octant round-trip") {
-        DumpOctant(octant, ss);
-        Octant new_oct = LoadOctant(ss);
-        CheckOctant(octant, new_oct);
-        CHECK(IsEmpty(ss));
+        SUBCASE("initialised octant") {
+            DumpOctant(octant, ss);
+            Octant new_oct = LoadOctant(ss);
+            CheckOctant(octant, new_oct);
+            CHECK(IsEmpty(ss));
+        }
+
+        SUBCASE("uninitialised octant") {
+            Octant uninit_oct;
+            DumpOctant(uninit_oct, ss);
+            Octant new_oct = LoadOctant(ss);
+            CheckOctant(uninit_oct, new_oct);
+            CHECK(IsEmpty(ss));
+        }
     }
 
     SUBCASE("test Vec round-trip") {

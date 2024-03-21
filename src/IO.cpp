@@ -63,7 +63,10 @@ template<typename T> void DumpMatrix(
 }
 
 Octant LoadOctant(std::istream& stream) {
-    // TODO: check isinitialised bit
+    bool is_initialised;
+    stream >> is_initialised;
+    if (!is_initialised) return Octant();
+
     double lim[Octant::mDim][2];
     for (int i = 0; i < Octant::mDim; i++) {
         stream >> lim[i][0] >> lim[i][1];
@@ -90,6 +93,8 @@ Particle LoadParticle(std::istream& stream) {
 }
 
 void DumpOctant(const Octant& octant, std::ostream& stream) {
+    stream << octant.IsInitialised() << std::endl;
+    if (!octant.IsInitialised()) return;
     for (int i = 0; i < Octant::mDim; i++) {
         stream << octant[i][0] << " " << octant[i][1] << std::endl;
     }
@@ -113,8 +118,9 @@ void DumpParticle(const Particle& par, std::ostream& stream) {
 void DumpGrid(const Grid& grid, std::ostream& stream) {
     stream << "BEGIN GRID" << std::endl;
 
-    // print limits to grid
+    // print limits to grid.
     DumpOctant(grid.GetLimits(), stream);
+    DumpOctant(grid.GetOctant(), stream);
     
     // print all particles in grid
     stream << grid.GetSize() << std::endl;
@@ -142,6 +148,7 @@ Grid LoadGrid(std::istream& stream) {
     assert(flag == "BEGIN" && token == "GRID");
         
     Grid grid = Grid(LoadOctant(stream));
+    grid.SetOctant(LoadOctant(stream));
     int size;
     stream >> size;
     for (int i = 0; i < size; i++) {
