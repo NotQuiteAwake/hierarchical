@@ -1,4 +1,3 @@
-#include <cmath>
 #include <cassert>
 #include "Force.hpp"
 
@@ -32,7 +31,7 @@ Vec Gravity::ForceLaw(const Particle& p1, const Particle& p2) const {
     assert(&p1 != &p2);
     assert(dist);
 
-    return  dr * mG * p1.GetMass() * p2.GetMass() / pow(dist, 3);
+    return  dr * mG * p1.GetMass() * p2.GetMass() / (dist * dist * dist);
 } 
 
 Vec DummyForce::ForceLaw(const Particle& p1, const Particle& p2) const {

@@ -98,7 +98,7 @@ TEST_CASE("test inverse square Interactions") {
     int p = 6;
     double theta = 0.5;
     auto grav = std::make_unique<const Gravity>();
-    auto invsq = std::make_unique<const InvSqKernels>(p);
+    auto invsq = std::make_unique<InvSqKernels>(p);
 
     SUBCASE("test Brute with triangular masses") {
         auto brute = std::make_unique<Brute>(grav.get());

@@ -13,7 +13,7 @@ double U2_1(const Vec& vec) {
     return 3 * vec[1] * vec[2];
 }
 
-double GammaU(const Vec& vec, int n, int m, const InvSqKernels& invsq) {
+double GammaU(const Vec& vec, int n, int m, InvSqKernels& invsq) {
     using namespace std::complex_literals;
     typedef std::complex<double> cdouble;
 
@@ -26,9 +26,17 @@ double GammaU(const Vec& vec, int n, int m, const InvSqKernels& invsq) {
         * pow(invsq.Prefactor(n, m), 2);
 }
 
+void CHECK_CDOUBLE(std::complex<double> z1, std::complex<double> z2) {
+    CHECK(z1.real() == doctest::Approx(z2.real()));
+    CHECK(z1.imag() == doctest::Approx(z2.imag()));
+}
+
 TEST_CASE("test InvSqKernels") {
     typedef std::complex<double> cdouble;
-    const InvSqKernels invsq(3); // number doesn't matter in tests below.
+
+    int n_max = 10;
+    InvSqKernels invsq(n_max); // number doesn't matter in tests below.
+
     const Vec vec({1, 2, 3});
     
     SUBCASE("test Prefactor") {
@@ -45,15 +53,19 @@ TEST_CASE("test InvSqKernels") {
         CHECK(U2_1(vec) == doctest::Approx(Gamma_U2_1));
     }
 
-    SUBCASE("boost::math against preprocessing") {
-        int n_max = 10;
-        ComplexMatrix theta = invsq.Theta(vec, n_max);
-        for (int n = 0; n < n_max; n++) {
+    SUBCASE("boost::math against preprocessing & recurrence methods") {
+        ComplexMatrix mtheta = invsq.ThetaCopy(vec, n_max); // m for matrix
+        ComplexMatrix mgamma = invsq.GammaCopy(vec, n_max);
+        for (int n = 0; n <= n_max; n++) {
             for (int m = -n; m <= n; m++) {
-                cdouble boost_res = invsq.Theta(vec, n, m);
-                const cdouble& recur_res = theta[n][m];
-                CHECK(boost_res.real() == doctest::Approx(recur_res.real()));
-                CHECK(boost_res.imag() == doctest::Approx(recur_res.imag()));
+                cdouble btheta = invsq.ThetaBoost(vec, n, m); // b for boost
+                cdouble bgamma = invsq.GammaBoost(vec, n, m);
+                cdouble rtheta = invsq.Theta(vec, n, m); // r for recurrence
+                cdouble rgamma = invsq.Gamma(vec, n, m);
+                CHECK_CDOUBLE(mtheta[n][m], btheta);
+                CHECK_CDOUBLE(mgamma[n][m], bgamma);
+                CHECK_CDOUBLE(btheta, rtheta);
+                CHECK_CDOUBLE(bgamma, rgamma);
             }
         }
     }

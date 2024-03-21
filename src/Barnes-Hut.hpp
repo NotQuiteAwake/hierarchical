@@ -13,7 +13,7 @@ class BarnesHut : public Interaction {
     private:
         const int mP = 1; // TODO: order of multipole expansion
         const double mTheta;
-        Kernels const* mKernels;
+        Kernels* mKernels;
 
         bool IsFarAway(Octree const* node, const Particle& par) const;
         // soul needed to assert identity
@@ -26,7 +26,7 @@ class BarnesHut : public Interaction {
     public:
         BarnesHut(int p,
                   double theta,
-                  Kernels const* mKernels,
+                  Kernels* mKernels,
                   Force const* forceLaw);
        
         int GetP() const;

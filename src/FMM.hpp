@@ -13,7 +13,7 @@ class FMM : public Interaction {
         const double mTheta;
         const int mMaxPerCell;
         const int mMaxPairwiseLimit;
-        Kernels const* mKernels;
+        Kernels* mKernels;
 
         bool MAC(const Octree* node1, const Octree* node2) const;
 
@@ -26,7 +26,7 @@ class FMM : public Interaction {
             double theta,
             int maxPerCell,
             int maxPairwiseLimit,
-            Kernels const* kernels,
+            Kernels* kernels,
             Force const* forceLaw);
 
         int GetP() const;

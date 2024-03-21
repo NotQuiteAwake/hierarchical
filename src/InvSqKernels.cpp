@@ -8,7 +8,9 @@ namespace sim {
 
 static constexpr double PI() { return std::atan(1) * 4; }
 
-InvSqKernels::InvSqKernels(int p): Kernels(p) {};
+InvSqKernels::InvSqKernels(int p):
+    Kernels(p),
+    tempMatrix(ComplexMatrix(p, p)) {};
 
 double InvSqKernels::Prefactor(int n, int m) const {
     using boost::math::factorial;
@@ -26,30 +28,134 @@ InvSqKernels::cdouble InvSqKernels::Y(const Vec& v, int n, int m) const {
     return boost_Y * sqrt(4 * PI() / (2 * n + 1)) * (m % 2 ? -1.0 : 1.0);
 }
 
-InvSqKernels::cdouble InvSqKernels::Gamma(const Vec& v, int n, int m) const {
+InvSqKernels::cdouble InvSqKernels::GammaBoost(const Vec& v, int n, int m) const {
     double r = v.GetNorm();
     return 1.0 / Prefactor(n, m) * pow(r, n) * Y(v, n, m);
 }
 
-InvSqKernels::cdouble InvSqKernels::Theta(const Vec& v, int n, int m) const {
+InvSqKernels::cdouble InvSqKernels::ThetaBoost(const Vec& v, int n, int m) const {
     double r = v.GetNorm();
     assert(r);
     return Prefactor(n, m) * pow(r, -n - 1) * Y(v, n, m);
 }
 
+InvSqKernels::cdouble InvSqKernels::Gamma(const Vec& v, int n, int m) const {
+    typedef InvSqKernels::cdouble cdouble;
+    using namespace std::complex_literals;
+
+    int abs_m = std::abs(m);
+    if (abs_m > n) return 0;
+    if (useBoostLimit >= 0 && (n + abs_m) >= useBoostLimit) {
+        return GammaBoost(v, n, m);
+    }
+
+    // O(n + m) evaluation via recurrence
+    cdouble cur = 1.0;
+    double x = v[0], y = v[1], z = v[2];
+    double r = v.GetNorm();
+
+    // get to theta(abs_m, abs_m) first
+    for (int i = 1; i <= abs_m; i++) {
+        cur = (x + y * 1i) / (2.0 * i) * cur;
+    }
+
+
+    cdouble pre1 = 0; // mat[i - 1][j]
+    cdouble pre2 = 0; // mat[i - 2][j]
+
+    if (n >= 1) {
+        int start = abs_m + 1; // we are at (abs_m, abs_m) right now.
+        if (m == 0) {
+            // the recursion formula does not work for n = 1, m = 0.
+            // So we do it first and manually displace start
+            // this is fine, since we are inside {if (n >= 1)}
+            pre1 = cur;
+            cur = cdouble(z);
+            start = 2;
+        }
+        for (int i = start; i <= n; i++) {
+            pre2 = pre1;
+            pre1 = cur;
+            cur = 1.0 / (i * i - abs_m * abs_m) *
+                ((2 * i - 1) * z * pre1 - r * r * pre2);
+        }
+    }
+
+    if (m < 0) {
+        if (m % 2) { cur = -std::conj(cur); } // odd j
+        else { cur = std::conj(cur); } // even j
+    }
+
+    return cur;
+}
+
+InvSqKernels::cdouble InvSqKernels::Theta(const Vec& v, int n, int m) const {
+    typedef InvSqKernels::cdouble cdouble;
+    using namespace std::complex_literals;
+
+    int abs_m = std::abs(m);
+    if (abs_m > n) return 0;
+    if (useBoostLimit >= 0 && (n + abs_m) >= useBoostLimit) {
+        return ThetaBoost(v, n, m);
+    }
+
+    // O(n + m) evaluation via recurrence
+    const double x = v[0], y = v[1], z = v[2];
+    const double r = v.GetNorm();
+    const double r2 = r * r;
+
+    cdouble cur = 1.0 / r;
+
+    // go along diagonal
+    for (int i = 1; i <= abs_m; i++) {
+        cur = (2.0 * i - 1) * (x + 1i * y) / r2 * cur;
+    }
+    
+    cdouble pre1 = 0; // mat[i - 1][j]
+    cdouble pre2 = 0; // mat[i - 2][j]
+
+    if (n >= 1) {
+        int start = abs_m + 1; // we are at (abs_m, abs_m) right now.
+        if (m == 0) {
+            // the recursion formula does not work for n = 1, m = 0.
+            // So we do it first and manually displace start
+            // this is fine, since we are inside {if (n >= 1)}
+            pre1 = cur;
+            cur = cdouble(z / (r2 * r));
+            start = 2;
+        }
+        for (int i = start; i <= n; i++) {
+            pre2 = pre1;
+            pre1 = cur;
+            cur = ((2 * i - 1) * z * pre1
+                    - 1.0 * ((i - 1) * (i - 1) - abs_m * abs_m) * pre2) * 1.0 / r2;
+        }
+    }
+
+
+    if (m < 0) {
+        if (m % 2) { cur = -std::conj(cur); }
+        else { cur = std::conj(cur); }
+    }
+
+    return cur;
+}
+
 // Spherical harmonics via recurrence reln, ref Dehnen 2014 A.4, A.5
-ComplexMatrix InvSqKernels::Gamma(const Vec& v, int n) const {
+void InvSqKernels::Gamma(const Vec& v, int n) {
     typedef InvSqKernels::cdouble cdouble;
     using namespace std::complex_literals;
 
     double r = v.GetNorm();
     // gamma could represent going from the only mass to com - r = 0. so don't
     // assert(r);
+    assert(n <= mP);
 
-    ComplexMatrix mat(n, n);
+    ComplexMatrix& mat = tempMatrix;
 
     // initialise on a boundary "lower triangle".
     double x = v[0], y = v[1], z = v[2];
+    double r2 = r * r;
     mat[0][0] = cdouble(1);
     mat[1][0] = cdouble(z);
     mat[1][1] = (x + y * 1i) / 2.0;
@@ -62,7 +168,7 @@ ComplexMatrix InvSqKernels::Gamma(const Vec& v, int n) const {
                 mat[i][j] = (x + y * 1i) / (2.0 * i) * mat[i - 1][j - 1];
             } else {
                 mat[i][j] = 1.0 / (i * i - j * j) *
-                   ((2 * i - 1) * z * mat[i - 1][j] - r * r * mat[i - 2][j]);
+                   ((2 * i - 1) * z * mat[i - 1][j] - r2 * mat[i - 2][j]);
             }
         }
     }
@@ -74,31 +180,32 @@ ComplexMatrix InvSqKernels::Gamma(const Vec& v, int n) const {
             else { mat[i][j] = std::conj(mat[i][-j]); } // even j
         }
     }
-    return mat;
 }
 
-ComplexMatrix InvSqKernels::Theta(const Vec& v, int n) const {
+void InvSqKernels::Theta(const Vec& v, int n) {
     typedef InvSqKernels::cdouble cdouble;
     using namespace std::complex_literals;
     double r = v.GetNorm();
     assert(r);
+    assert(n <= mP);
 
-    ComplexMatrix mat(n, n);
+    ComplexMatrix& mat = tempMatrix;
 
     double x = v[0], y = v[1], z = v[2];
+    double r2 = r * r;
 
     mat[0][0] = cdouble(1.0 / r);
-    mat[1][0] = cdouble(z / pow(r, 3));
-    mat[1][1] = (2.0 * 1 - 1) * (x + 1i * y) / (r * r) * mat[0][0];
+    mat[1][0] = cdouble(z / (r2 * r));
+    mat[1][1] = (2.0 * 1 - 1) * (x + 1i * y) / r2 * mat[0][0];
     for (int i = 2; i <= n; i++) {
         for (int j = 0; j <= i; j++) {
             if (i == j) {
-                mat[i][j] = (2.0 * i - 1) * (x + 1i * y) / (r * r)
+                mat[i][j] = (2.0 * i - 1) * (x + 1i * y) / r2 
                     * mat[i - 1][j - 1]; }
             else {
                 mat[i][j] = ((2 * i - 1) * z * mat[i - 1][j]
                               - 1.0 * ((i - 1) * (i - 1) - j * j) * mat[i - 2][j])
-                    * 1.0 / (r * r);
+                    * 1.0 / r2;
             } 
         } 
     }
@@ -109,8 +216,16 @@ ComplexMatrix InvSqKernels::Theta(const Vec& v, int n) const {
             else { mat[i][j] = std::conj(mat[i][-j]); }
         }
     }
+}
 
-    return mat;
+ComplexMatrix InvSqKernels::GammaCopy(const Vec& v, int n) {
+    Gamma(v, n);
+    return tempMatrix;
+}
+
+ComplexMatrix InvSqKernels::ThetaCopy(const Vec& v, int n) {
+    Theta(v, n);
+    return tempMatrix;
 }
 
 void InvSqKernels::AddAccel(Particle& par,
@@ -120,34 +235,40 @@ void InvSqKernels::AddAccel(Particle& par,
         * par.GetCharge() / par.GetMass();
 }
 
-void InvSqKernels::P2M(Octree* leaf) const {
+void InvSqKernels::P2M(Octree* leaf) {
     assert(leaf);
     assert(leaf->IsLeaf());
 
     // TODO: test effect of using new Gamma here
     // This doesn't appear to be the bottleneck for now though...
 
-    for (int n = 0; n <= mP; n++) {
-        for (int m = -n; m <= n; m++) {
-            for (int soul : leaf->mSouls) {
-                const Particle& par = leaf->GetParticle(soul);
-                const double q = par.GetCharge();
-                const Vec& pos = par.pos;
-                const Vec& com = leaf->com;
-                leaf->M[n][m] += q * Gamma(pos - com, n, m);
+    const Vec& com = leaf->com;
+
+    for (int soul : leaf->mSouls) {
+        const Particle& par = leaf->GetParticle(soul);
+        const double q = par.GetCharge();
+        const Vec& pos = par.pos;
+        
+        Gamma(pos - com, mP);
+        const ComplexMatrix& gamma = tempMatrix;
+        
+        for (int n = 0; n <= mP; n++) {
+            for (int m = -n; m <= n; m++) {
+                leaf->M[n][m] += q * gamma[n][m];
             }
         }
     }
     
 }
 
-void InvSqKernels::M2M(Octree const* child, Octree* parent) const {
+void InvSqKernels::M2M(Octree const* child, Octree* parent) {
     assert(parent && child);
     assert(parent == child->GetParent());
 
     const Vec& zp = parent->com;
     const Vec& z = child->com;
-    const ComplexMatrix gamma = Gamma(z - zp, mP);
+    Gamma(z - zp, mP);
+    const ComplexMatrix& gamma = tempMatrix;
 
     for (int n = 0; n <= mP; n++) {
         for (int m = -n; m <= n; m++) {
@@ -165,12 +286,13 @@ void InvSqKernels::M2M(Octree const* child, Octree* parent) const {
     }
 }
 
-ComplexMatrix InvSqKernels::M2X(Octree const* source, const Vec& s) const {
+ComplexMatrix InvSqKernels::M2X(Octree const* source, const Vec& s) {
     assert(source);
     ComplexMatrix F(mP, mP);
 
     const Vec& z = source->com;
-    const ComplexMatrix theta = Theta(s - z, mP);
+    Theta(s - z, mP);
+    const ComplexMatrix& theta = tempMatrix;
     for (int n = 0; n <= mP; n++) {
         for (int m = -n; m <= n; m++) {
             for (int k = 0; k <= mP - n; k++) {
@@ -186,12 +308,13 @@ ComplexMatrix InvSqKernels::M2X(Octree const* source, const Vec& s) const {
     return F;
 }
 
-ComplexMatrix InvSqKernels::L2X(Octree const* previous, const Vec& sp) const {
+ComplexMatrix InvSqKernels::L2X(Octree const* previous, const Vec& sp) {
     assert(previous);
     const Vec& s = previous->com;
 
     ComplexMatrix F(mP, mP);
-    ComplexMatrix gamma = Gamma(s - sp, mP);
+    Gamma(s - sp, mP);
+    const ComplexMatrix& gamma = tempMatrix;
 
     for (int n = 0; n <= mP; n++) {
         for (int m = -n; m <= n; m++) {

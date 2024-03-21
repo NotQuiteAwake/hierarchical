@@ -47,7 +47,7 @@ Particle& BarnesHut::EvaluateAccel(
 
 BarnesHut::BarnesHut(int p,
                      double theta,
-                     Kernels const* kernels,
+                     Kernels* kernels,
                      Force const* forceLaw) :
     Interaction(forceLaw),
     mP(p),

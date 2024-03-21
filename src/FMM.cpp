@@ -9,7 +9,7 @@ FMM::FMM(int p,
         double theta,
         int maxPerCell,
         int maxPairwiseLimit,
-        Kernels const* kernels,
+        Kernels* kernels,
         Force const* forceLaw):
     Interaction(forceLaw),
     mP(p),
