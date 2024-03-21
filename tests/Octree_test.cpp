@@ -29,11 +29,20 @@ Grid AddTestParticles(const Grid& g1) {
 }
 
 void CheckTree(Octree const* node) {
-    if (!node) return;
+    assert(node);
+    Vec com = Vec();
+    double mass = 0;
     for (int soul : node->mSouls) {
         const Particle& par = node->GetParticle(soul);
+        com += par.pos * par.GetMass();
+        mass += par.GetMass();
         CHECK(node->GetOctant().Within(par.pos));
     }
+    com = com / mass;
+    for (int i = 0; i < Vec::mDim; i++) {
+        CHECK(com[i] == doctest::Approx(node->com[i]));
+    }
+
     if (node->IsLeaf()) {
         CHECK(node->GetMaxParticles() >= node->mSouls.size());
         int child_cnt = 0;
@@ -42,10 +51,15 @@ void CheckTree(Octree const* node) {
         }
         CHECK(child_cnt == 0);
         return;
-    }
-
-    for (int i = 0; i < node->mBoxes; i++) {
-        CheckTree(node->GetChild(i));
+    } else {
+        int child_cnt = 0;
+        for (int i = 0; i < node->mBoxes; i++) {
+            Octree const* child_node = node->GetChild(i);
+            if (!child_node) continue;
+            child_cnt++;
+            CheckTree(child_node);
+        }
+        CHECK(child_cnt > 0);
     }
     
 }
