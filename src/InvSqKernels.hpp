@@ -18,6 +18,8 @@ class InvSqKernels : public Kernels {
         // solid spherical harmonics as per Dehnen 2014
         cdouble Gamma(const Vec& v, int n, int m) const;
         cdouble Theta(const Vec& v, int n, int m) const;
+        ComplexMatrix Gamma(const Vec& v, int n) const;
+        ComplexMatrix Theta(const Vec& v, int n) const;
 
         void AddAccel(Particle& par,
                 const ComplexMatrix& F) const override;

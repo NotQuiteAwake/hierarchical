@@ -27,6 +27,7 @@ double GammaU(const Vec& vec, int n, int m, const InvSqKernels& invsq) {
 }
 
 TEST_CASE("test InvSqKernels") {
+    typedef std::complex<double> cdouble;
     const InvSqKernels invsq(3); // number doesn't matter in tests below.
     const Vec vec({1, 2, 3});
     
@@ -42,6 +43,19 @@ TEST_CASE("test InvSqKernels") {
         // U(2, -1)
         double Gamma_U2_1 = GammaU(vec, 2, -1, invsq);
         CHECK(U2_1(vec) == doctest::Approx(Gamma_U2_1));
+    }
+
+    SUBCASE("boost::math against preprocessing") {
+        int n_max = 10;
+        ComplexMatrix theta = invsq.Theta(vec, n_max);
+        for (int n = 0; n < n_max; n++) {
+            for (int m = -n; m <= n; m++) {
+                cdouble boost_res = invsq.Theta(vec, n, m);
+                const cdouble& recur_res = theta[n][m];
+                CHECK(boost_res.real() == doctest::Approx(recur_res.real()));
+                CHECK(boost_res.imag() == doctest::Approx(recur_res.imag()));
+            }
+        }
     }
 
 }

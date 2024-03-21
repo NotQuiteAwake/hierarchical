@@ -23,7 +23,7 @@ bool FMM::MAC(Octree const* node1, Octree const* node2) const {
     double dist = dr.GetNorm();
     // TODO: does this really work well for general rect boxes?
     double sum_lengths = node1->GetMaxLength() + node2->GetMaxLength();
-    return dist * mTheta > sum_lengths;
+    return dist * mTheta >= sum_lengths;
 }
 
 // dual tree traversal similar to Dehnen 2002
