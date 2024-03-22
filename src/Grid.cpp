@@ -9,6 +9,15 @@ Grid::Grid(int size, Octant maxLim):
     mMaxLim(maxLim),
     mOctant(Octant()) { Reserve(size); }
     
+Grid::Grid(const std::vector<Particle>& pars, Octant maxLim):
+    mMaxLim(maxLim),
+    mOctant(Octant()) {
+        for (const Particle& par : pars) {
+            // necessary, or else mOctant.Relax is not called.
+            AddParticle(par);
+        }
+    }
+
 int Grid::GetSize() const {
     return mParticles.size();
 }

@@ -7,6 +7,7 @@
 #include "InvSqKernels.hpp"
 #include "Barnes-Hut.hpp"
 #include "FMM.hpp"
+#include "Distribution.hpp"
 
 namespace sim {
 
@@ -73,8 +74,6 @@ void TestWellSeparated(
     auto grav = std::make_unique<const InvSqForce>();
     auto brute = std::make_unique<const Brute>(grav.get());
 
-    srand(0);
-    
     Grid grid;
 
     grid = MakeCluster(grid, Vec({2, 2, 2}), 1, numMass1);
@@ -85,6 +84,8 @@ void TestWellSeparated(
     Grid grid_brute = brute->Calculate(grid);
     Grid grid_alt = interaction->Calculate(grid);
 
+    CHECK(grid_alt.GetSize() == grid_brute.GetSize());
+
     for (int i = 0; i < grid_alt.GetSize(); i++) {
         // so diagnostic message is more illustrating...
         for (int j = 0; j < 3; j++) {
@@ -92,6 +93,32 @@ void TestWellSeparated(
                     doctest::Approx(grid_brute[i].accel[j]).epsilon(eps));
         }
     }
+}
+
+void TestDenseUniform(Interaction const* interaction) {
+    auto grav = std::make_unique<const InvSqForce>();
+    auto brute = std::make_unique<const Brute>(grav.get());
+
+    std::vector<Particle> particles;
+    particles = dist::MakeUniformMass(10, 5, 300);
+    double spread[3]{5, 5, 5};
+    particles = dist::SetUniformPos(Vec({0, 0, 0}), spread, particles); 
+
+    Grid grid = particles;
+
+    Grid grid_brute = brute->Calculate(grid);
+    Grid grid_alt = interaction->Calculate(grid);
+
+    CHECK(grid_alt.GetSize() == grid_brute.GetSize());
+
+    for (int i = 0; i < grid_alt.GetSize(); i++) {
+        // so diagnostic message is more illustrating...
+        for (int j = 0; j < 3; j++) {
+            CHECK(grid_alt[i].accel[j] ==
+                    doctest::Approx(grid_brute[i].accel[j]).epsilon(eps));
+        }
+    }
+
 }
 
 TEST_CASE("test inverse square Interactions") {
@@ -123,6 +150,10 @@ TEST_CASE("test inverse square Interactions") {
             TestWellSeparated(bh.get(), 1, 10);
             TestWellSeparated(bh.get(), 10, 10);
         }
+
+        SUBCASE("test BH with dense uniform grid") {
+            TestDenseUniform(bh.get());
+        }
     } 
 
     SUBCASE("test FMM") {  
@@ -139,15 +170,26 @@ TEST_CASE("test inverse square Interactions") {
             std::make_unique<FMM>(p, theta, 4, 4, invsq.get(), grav.get())
         };
 
-        for (int i = 0; i < fmm_params; i++) {
-            //std::cout << i << std::endl;
-            TestTriangle(fmm[i].get());
+        SUBCASE("test FMM with triangle") {
+            for (int i = 0; i < fmm_params; i++) {
+                //std::cout << i << std::endl;
+                TestTriangle(fmm[i].get());
+            }
         }
-        for (int i = 0; i < fmm_params; i++) {
-            TestWellSeparated(fmm[i].get(), 1, 1); // pairwise
-            TestWellSeparated(fmm[i].get(), 1, 2); // verifies recursion 
-            TestWellSeparated(fmm[i].get(), 1, 10); // FMM likely active
-            TestWellSeparated(fmm[i].get(), 10, 10); // usual case
+
+        SUBCASE("test FMM with well-separated masses") {
+            for (int i = 0; i < fmm_params; i++) {
+                TestWellSeparated(fmm[i].get(), 1, 1); // pairwise
+                TestWellSeparated(fmm[i].get(), 1, 2); // verifies recursion 
+                TestWellSeparated(fmm[i].get(), 1, 10); // FMM likely active
+                TestWellSeparated(fmm[i].get(), 10, 10); // usual case
+            }
+        }
+
+        SUBCASE("test FMM with dense uniform grid") {
+            for (int i = 0; i < fmm_params; i++) {
+                TestDenseUniform(fmm[i].get());
+            }
         }
     }
 }

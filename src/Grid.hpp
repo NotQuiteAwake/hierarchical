@@ -17,6 +17,7 @@ class Grid {
     public:
         Grid(Octant maxLim = Octant());
         Grid(int size, Octant maxLim = Octant());
+        Grid(const std::vector<Particle>& pars, Octant maxLim = Octant());
 
         int GetSize() const;
         const Octant GetLimits() const;

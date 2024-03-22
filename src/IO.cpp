@@ -4,6 +4,7 @@
 #include <string>
 #include <cassert>
 #include <fstream>
+#include <filesystem>
 #include "IO.hpp"
 #include "Octant.hpp"
 
@@ -60,6 +61,15 @@ template<typename T> void DumpMatrix(
         stream << std::endl;
     }
 }
+}
+
+bool FileExists(const std::string& fileName) {
+    // fileName automatically converted to std::filesystem::path
+    return std::filesystem::exists(fileName);
+}
+
+void MakeDir(const std::string& dirName) {
+    std::filesystem::create_directory(dirName);
 }
 
 Octant LoadOctant(std::istream& stream) {

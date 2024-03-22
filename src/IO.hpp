@@ -21,6 +21,9 @@ template<typename T> void DumpMatrix(const Matrix<T> matrix,
         std::ostream& stream);
 }
 
+bool FileExists(const std::string& fileName);
+void MakeDir(const std::string& dirName);
+
 Octant LoadOctant(std::istream& stream = std::cin);
 Vec LoadVec(std::istream& stream = std::cin);
 Particle LoadParticle(std::istream& stream = std::cin);
@@ -47,7 +50,6 @@ void LoadOctreeNode(Octree* node, std::istream& stream);
 void LoadOctreeHelper(Octree* node, const Grid& grid,
         std::istream& stream);
 }
-
 std::unique_ptr<Octree> LoadOctree(
         const Grid& grid,
         std::istream& stream = std::cin
