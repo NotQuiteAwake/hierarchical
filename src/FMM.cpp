@@ -32,9 +32,11 @@ bool FMM::MAC(Octree const* node1, Octree const* node2) const {
 void FMM::Interact(Octree* node1, Octree* node2, Grid& grid) const {
     assert(node1);
     assert(node2);
-    int n1 = node1->mSouls.size();
-    int n2 = node2->mSouls.size();
-    int pairwise_terms = n1 * n2;
+    // a size of 5e4 could easily overflow the pairwise terms, and cause all
+    // interactoins to go through the brute-force method... Very funny.
+    int64_t n1 = node1->mSouls.size();
+    int64_t n2 = node2->mSouls.size();
+    int64_t pairwise_terms = n1 * n2;
 
     if ((node1->IsLeaf() && node2->IsLeaf())
             || pairwise_terms <= mMaxPairwiseLimit)
