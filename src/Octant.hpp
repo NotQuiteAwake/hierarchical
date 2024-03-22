@@ -31,7 +31,8 @@ class Octant {
         Octant GetOctant(int octantNumber) const;
 
         double const* operator[](int index) const;
-        bool operator==(const Octant& otherOctant) const; // TODO: not floating
+        // TODO: not floating point safe
+        bool operator==(const Octant& otherOctant) const; 
 };
 
 }

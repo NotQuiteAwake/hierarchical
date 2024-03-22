@@ -21,9 +21,13 @@ bool Force::CheckDistinct(const Particle& p1, const Particle& p2) const {
     return !(same_par_addr || same_pos);
 }
 
-Gravity::Gravity(double G): mG(G) {};
+Vec DummyForce::ForceLaw(const Particle& p1, const Particle& p2) const {
+    return Vec();
+}
 
-Vec Gravity::ForceLaw(const Particle& p1, const Particle& p2) const {
+InvSqForce::InvSqForce(double G): mG(G) {};
+
+Vec InvSqForce::ForceLaw(const Particle& p1, const Particle& p2) const {
     Vec dr = p2.pos - p1.pos;
     double dist = dr.GetNorm();
 
@@ -31,11 +35,7 @@ Vec Gravity::ForceLaw(const Particle& p1, const Particle& p2) const {
     assert(&p1 != &p2);
     assert(dist);
 
-    return  dr * mG * p1.GetMass() * p2.GetMass() / (dist * dist * dist);
+    return -dr * mG * p1.GetCharge() * p2.GetCharge() / (dist * dist * dist);
 } 
-
-Vec DummyForce::ForceLaw(const Particle& p1, const Particle& p2) const {
-    return Vec();
-}
 
 }

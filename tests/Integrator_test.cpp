@@ -15,7 +15,7 @@ Grid AnalyticConstAccel(const Grid& g1, double time) {
 }
 
 // test with constant acceleration scenario
-void TestIntegrator(std::unique_ptr<const Integrator> integrator) {
+void TestIntegrator(Integrator const* integrator) {
     Grid grid;
     double time = 1;
     int n_steps = int(1e5);
@@ -65,11 +65,11 @@ TEST_CASE("test Integrator") {
     }
 
     SUBCASE("test Euler") {
-        TestIntegrator(std::make_unique<Euler>(dummy_step));
+        TestIntegrator(euler_int.get());
     }
 
     SUBCASE("test Leapfrog") {
-        TestIntegrator(std::make_unique<LeapFrog>(dummy_step));
+        TestIntegrator(lf_int.get());
     }
 }
 

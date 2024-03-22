@@ -8,9 +8,10 @@ namespace sim {
 
 static constexpr double PI() { return std::atan(1) * 4; }
 
-InvSqKernels::InvSqKernels(int p):
+InvSqKernels::InvSqKernels(int p, double G):
     Kernels(p),
-    tempMatrix(ComplexMatrix(p, p)) {};
+    mG(G),
+    mTempMatrix(ComplexMatrix(p, p)) {};
 
 double InvSqKernels::Prefactor(int n, int m) const {
     using boost::math::factorial;
@@ -151,7 +152,7 @@ void InvSqKernels::Gamma(const Vec& v, int n) {
     // assert(r);
     assert(n <= mP);
 
-    ComplexMatrix& mat = tempMatrix;
+    ComplexMatrix& mat = mTempMatrix;
 
     // initialise on a boundary "lower triangle".
     double x = v[0], y = v[1], z = v[2];
@@ -189,7 +190,7 @@ void InvSqKernels::Theta(const Vec& v, int n) {
     assert(r);
     assert(n <= mP);
 
-    ComplexMatrix& mat = tempMatrix;
+    ComplexMatrix& mat = mTempMatrix;
 
     double x = v[0], y = v[1], z = v[2];
     double r2 = r * r;
@@ -220,27 +221,24 @@ void InvSqKernels::Theta(const Vec& v, int n) {
 
 ComplexMatrix InvSqKernels::GammaCopy(const Vec& v, int n) {
     Gamma(v, n);
-    return tempMatrix;
+    return mTempMatrix;
 }
 
 ComplexMatrix InvSqKernels::ThetaCopy(const Vec& v, int n) {
     Theta(v, n);
-    return tempMatrix;
+    return mTempMatrix;
 }
 
 void InvSqKernels::AddAccel(Particle& par,
         const ComplexMatrix& psi) const {
     // note psi[1][0] should just be real.
-    par.accel -= Vec({psi[1][1].real(), psi[1][1].imag(), psi[1][0].real()})
-        * par.GetCharge() / par.GetMass();
+    par.accel += Vec({psi[1][1].real(), psi[1][1].imag(), psi[1][0].real()})
+        * mG * par.GetCharge() / par.GetMass();
 }
 
 void InvSqKernels::P2M(Octree* leaf) {
     assert(leaf);
     assert(leaf->IsLeaf());
-
-    // TODO: test effect of using new Gamma here
-    // This doesn't appear to be the bottleneck for now though...
 
     const Vec& com = leaf->com;
 
@@ -250,7 +248,7 @@ void InvSqKernels::P2M(Octree* leaf) {
         const Vec& pos = par.pos;
         
         Gamma(pos - com, mP);
-        const ComplexMatrix& gamma = tempMatrix;
+        const ComplexMatrix& gamma = mTempMatrix;
         
         for (int n = 0; n <= mP; n++) {
             for (int m = -n; m <= n; m++) {
@@ -268,7 +266,7 @@ void InvSqKernels::M2M(Octree const* child, Octree* parent) {
     const Vec& zp = parent->com;
     const Vec& z = child->com;
     Gamma(z - zp, mP);
-    const ComplexMatrix& gamma = tempMatrix;
+    const ComplexMatrix& gamma = mTempMatrix;
 
     for (int n = 0; n <= mP; n++) {
         for (int m = -n; m <= n; m++) {
@@ -292,7 +290,7 @@ ComplexMatrix InvSqKernels::M2X(Octree const* source, const Vec& s) {
 
     const Vec& z = source->com;
     Theta(s - z, mP);
-    const ComplexMatrix& theta = tempMatrix;
+    const ComplexMatrix& theta = mTempMatrix;
     for (int n = 0; n <= mP; n++) {
         for (int m = -n; m <= n; m++) {
             for (int k = 0; k <= mP - n; k++) {
@@ -314,7 +312,7 @@ ComplexMatrix InvSqKernels::L2X(Octree const* previous, const Vec& sp) {
 
     ComplexMatrix F(mP, mP);
     Gamma(s - sp, mP);
-    const ComplexMatrix& gamma = tempMatrix;
+    const ComplexMatrix& gamma = mTempMatrix;
 
     for (int n = 0; n <= mP; n++) {
         for (int m = -n; m <= n; m++) {

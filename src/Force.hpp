@@ -23,17 +23,18 @@ class Force {
         bool CheckDistinct(const Particle& p1, const Particle& p2) const;
 };
 
-class Gravity : public Force {
-    private:
-        double mG;
-
+class DummyForce : public Force {
     public:
-        Gravity(double G = 1);
         Vec ForceLaw(const Particle& p1, const Particle& p2) const override;
 };
 
-class DummyForce : public Force {
+class InvSqForce : public Force {
+    protected:
+        double mG;
+
     public:
+        // defaults to attractive coupling (gravity)
+        InvSqForce(double G = -1);
         Vec ForceLaw(const Particle& p1, const Particle& p2) const override;
 };
 

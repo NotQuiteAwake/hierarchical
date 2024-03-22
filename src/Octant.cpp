@@ -86,6 +86,7 @@ Octant Octant::GetOctant(int octantNumber) const {
     return GetOctant(*this, octantNumber);
 }
 
+// double const* prevents external modification of pointed-to array.
 double const* Octant::operator[](int index) const {
     return mLimits[index];
 }

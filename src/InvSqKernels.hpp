@@ -9,12 +9,14 @@ namespace sim {
 class InvSqKernels : public Kernels {
     private:
         const int useBoostLimit = -1;
-        ComplexMatrix tempMatrix;
+        const double mG;
+        ComplexMatrix mTempMatrix;
 
     public:
         typedef std::complex<double> cdouble;
 
-        InvSqKernels(int p);
+        // defaults to attractive force (gravity)
+        InvSqKernels(int p, double G = -1);
 
         double Prefactor(int n, int m) const;
         // surface spherical harmonics via Boost

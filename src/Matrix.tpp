@@ -1,6 +1,7 @@
 #ifndef MATRIXHEADERDEF_TPP
 #define MATRIXHEADERDEF_TPP
 
+#include <cassert>
 #include "Matrix.hpp"
 
 namespace sim {
@@ -20,11 +21,15 @@ template<typename T> void Matrix<T>::Resize(int nrows, int ncols) {
     mColCnt = ncols;
 }
 
+// const& as user don't need to deal with Row, rather just its elements
+// and the Row operator[] returns by value anyway
 template<typename T> const Row<T>& Matrix<T>::operator[](int rowIndex) const {
+    assert(0 <= rowIndex && rowIndex <= mRowCnt);
     return mRows[rowIndex];
 }
 
 template<typename T> Row<T>& Matrix<T>::operator[](int rowIndex) {
+    assert(0 <= rowIndex && rowIndex <= mRowCnt);
     return mRows[rowIndex];
 }
 

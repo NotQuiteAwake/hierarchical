@@ -71,7 +71,6 @@ void FMM::Interact(Octree* node1, Octree* node2, Grid& grid) const {
         // should cover parent-neightbour child-non-neighbour nodes
         // We leave F tensors as lazy labels for now
         mKernels->M2L(node1, node2);
-        // TODO: symmetry argument here?
         mKernels->M2L(node2, node1);
     } else {
         // "interaction cannot be performed" per Dehnen 2002

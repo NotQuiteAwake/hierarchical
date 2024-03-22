@@ -70,7 +70,7 @@ void TestWellSeparated(
         int numMass1,
         int numMass2
         ) {
-    auto grav = std::make_unique<const Gravity>();
+    auto grav = std::make_unique<const InvSqForce>();
     auto brute = std::make_unique<const Brute>(grav.get());
 
     srand(0);
@@ -97,7 +97,7 @@ void TestWellSeparated(
 TEST_CASE("test inverse square Interactions") {
     int p = 6;
     double theta = 0.5;
-    auto grav = std::make_unique<const Gravity>();
+    auto grav = std::make_unique<const InvSqForce>();
     auto invsq = std::make_unique<InvSqKernels>(p);
 
     SUBCASE("test Brute with triangular masses") {
@@ -110,7 +110,8 @@ TEST_CASE("test inverse square Interactions") {
                 p,
                 theta,
                 invsq.get(),
-                grav.get());
+                grav.get()
+                );
 
         SUBCASE("test BH with triangular masses") {
             TestTriangle(bh.get());
