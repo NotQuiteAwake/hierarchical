@@ -75,6 +75,7 @@ def AnalyseComplexity(fileName:str, figDir:str):
     plt.xlabel('Number of masses $N$')
     plt.ylabel('Average calculation time $t / \\mu s$')
     plt.savefig(figDir + 'time_mass.pdf')
+    plt.clf()
 
     plt.figure(1)
     plt.title('$\\ln{t}$ against $\\ln{N}$')
@@ -86,9 +87,6 @@ def AnalyseComplexity(fileName:str, figDir:str):
     # plt.show()
     plt.savefig(figDir + 'time_mass_lnln.pdf')
     plt.clf()
-
-    
-
 
 
 def AnalyseError(folderName:str, figDir:str):
@@ -186,11 +184,12 @@ def AnalyseError(folderName:str, figDir:str):
             r = np.percentile(allerr[n], 95) * 10
             divs:int = 30
             plt.title(f'Error distribution (N = {n}, {int_type})')
-            plt.xlabel('% error')
+            plt.xlabel('error')
             plt.ylabel('Number of particles')
             plt.hist(allerr[n], bins=np.logspace(np.log10(l), np.log10(r), divs))
+            plt.xlim(l, r)
             plt.gca().set_xscale("log")
-            plt.savefig(figDir + int_type + '_hist_' + str(n) + '.pdf')
+            plt.savefig(f'{figDir}{int_type}_hist_{n}.pdf')
             plt.clf()
         
 
@@ -237,3 +236,103 @@ def AnalyseExpansionOrder(fileName:str, figDir:str):
     plt.savefig(figDir + 'time_p.pdf')
     plt.clf()
 
+
+def AnalyseExpansionError(folderName:str, figDir:str):
+    file_names:list[str] = [folderName + f for f in os.listdir(folderName)]
+    file_names = sorted([f for f in file_names if os.path.isfile(f)])
+
+    # result by type of interaction
+    fn_by_inter:dict[str, dict[int, str]] = {
+            'brute': {},
+            'bh': {},
+            'fmm': {}
+            }
+
+    # because I forgot to print this in the .dump files. Haha.
+    NUM_REPEATS:int = 10
+
+    # file read-in
+    for file_name in file_names:
+        param:list[str] = file_name.split('/')[-1].split('.')[0].split('_')
+        int_type:str = param[0]
+        n:int = int(param[1])
+        p:int = int(param[2])
+            
+        fn_by_inter[int_type][p] = file_name
+
+    p_list:list[int] = sorted(list(fn_by_inter['bh'].keys()))
+    p_min:int = min(p_list)
+    p_max:int = max(p_list)
+
+    # process error
+    for int_type, p_dict in fn_by_inter.items():
+        if int_type == 'brute':
+            continue
+
+        print(int_type)
+
+        # all errors at each p
+        allerr:dict[int, list[float]] = {}
+
+        for p in p_list:
+            print(p)
+
+            # fn: file_name
+            fn_brute = fn_by_inter['brute'][p_min]
+            fn_inter = fn_by_inter[int_type][p]
+
+            #gl: grid list
+            gl_brute:list = IO.LoadGrids(fn_brute, NUM_REPEATS)
+            gl_inter:list = IO.LoadGrids(fn_inter, NUM_REPEATS)
+
+            allerr[p] = []
+            
+            for g_brute, g_inter in zip(gl_brute, gl_inter):
+                err_rep = []
+                for p_brute, p_inter in zip(g_brute.mParticles,
+                                                g_inter.mParticles):
+                    
+                    ac_brute = p_brute.accel
+                    ac_inter = p_inter.accel
+                    err = np.abs((ac_brute - ac_inter) / (ac_brute))
+                          
+                    allerr[p].append(np.mean(err))
+    
+        for p in p_list:
+            l = np.percentile(allerr[p], 5) / 10
+            r = np.percentile(allerr[p], 95) * 10
+            divs:int = 30
+            plt.title(f'Error distribution (p = {p}, {int_type})')
+            plt.xlabel('error')
+            plt.ylabel('Number of particles')
+            plt.hist(allerr[p],
+                     bins=np.logspace(np.log10(l), np.log10(r), divs))
+            plt.xlim(l, r)
+            plt.gca().set_xscale("log")
+            plt.savefig(f'{figDir}{int_type}_hist_{p}.pdf')
+            plt.clf()
+
+        perc5_list = [np.percentile(allerr[p], 5) for p in p_list]
+        perc95_list = [np.percentile(allerr[p], 95) for p in p_list]
+        mean_err_list = [np.mean(allerr[p]) for p in p_list]
+
+        def plotter(y:list, err_type:str):
+            lny = np.log(y)
+
+            color = plt.plot(p_list,
+                             lny,
+                             label = err_type,
+                             linestyle = '--',
+                             marker = 'x')[0].get_color()
+
+        plotter(mean_err_list, 'mean error')
+        plotter(perc5_list, '5th percentile error')
+        plotter(perc95_list, '95th percentile error')
+        plt.title(f"Error against order of expansion $p$ ({int_type})")
+        plt.xlabel('Order $p$')
+        plt.ylabel('ln(relative error)')
+        plt.legend()
+        plt.xlim(min(p_list), max(p_list))
+
+        plt.savefig(f'{figDir}err_p_{int_type}')
+        plt.clf()

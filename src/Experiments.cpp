@@ -191,9 +191,9 @@ void ExpansionOrderComplexity() {
     // need to find correct directory
     if (!CheckFile(dataDir, true)) { return; }
 
-    const std::string comp_dir_name = dataDir + "complexity/";
-    const std::string comp_file_name = comp_dir_name + "p-comp.out";
-    const std::string dump_dir_name = comp_dir_name + "p-dump/";
+    const std::string comp_dir_name = dataDir + "p-complexity/";
+    const std::string comp_file_name = comp_dir_name + "complexity.out";
+    const std::string dump_dir_name = comp_dir_name + "dump/";
     IO::MakeDir(comp_dir_name);
 
     // do not overwrite
