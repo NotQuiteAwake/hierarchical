@@ -3,6 +3,7 @@ import os
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
+import scipy as sp
 
 import IO
 from Grid import Grid
@@ -11,7 +12,9 @@ def AnalyseComplexity(fileName:str, figDir:str):
     res = IO.LoadTimingResults(fileName) 
 
     x_max:int = 0
+    x_min:int = float('inf')
     y_max:float = 0
+    y_min:float = float('inf') 
     for int_name, int_results in res.items():
         n_list:list = []
         timing_list:list = []
@@ -22,35 +25,70 @@ def AnalyseComplexity(fileName:str, figDir:str):
 
             n_list.append((n))
             timing_list.append((mean))
+            timing_stdev.append(stdev)
             
             x_max = max(x_max, n)
+            x_min = min(x_min, n)
             y_max = max(y_max, mean)
-        
-        plt.errorbar(n_list,
-                     timing_list,
-                     # yerr = timing_stdev,
-                     label = int_name
-                     )
+            y_min = min(y_min, mean)
+
+        plt.figure(0)
+        power_law = lambda x, a, b: a * (x**b)
+        a, b = sp.optimize.curve_fit(power_law, n_list, timing_list)[0]
+        color = plt.errorbar(n_list,
+                             timing_list,
+                             yerr = timing_stdev,
+                             label = int_name,
+                             linestyle = '',
+                             marker = 'x'
+                             )[0].get_color()
+        n_dense = np.linspace(min(n_list), max(n_list), 1000)
+        plt.plot(n_dense,
+                 [power_law(n, a, b) for n in n_dense],
+                 label = f'{int_name} fit, pow = {b:.2f}',
+                 color = color)
+
+        plt.figure(1)
+
+        linear = lambda x, a, b: a * x + b
+        ln_n = np.log(n_list)
+        ln_t = np.log(timing_list)
+        a, b = sp.optimize.curve_fit(linear, ln_n, ln_t)[0]
+
+        color = plt.plot(ln_n,
+                         ln_t,
+                         label = int_name,
+                         linestyle = '',
+                         marker = 'x')[0].get_color()
+
+        ln_n_dense = np.linspace(ln_n[0], ln_n[-1], 1000)
+        plt.plot(ln_n_dense,
+                 [linear(lnn, a, b) for lnn in ln_n_dense],
+                 label = f'{int_name} ln fit, pow = {a:.2f}',
+                 color = color)
          
+    plt.figure(0)
     plt.title('Average time against number of masses')
     plt.legend()
     plt.xlim(0, x_max)
     plt.ylim(0, y_max * 1.1)
     plt.xlabel('Number of masses $N$')
-    plt.ylabel('Average calculation time $t$')
+    plt.ylabel('Average calculation time $t / \\mu s$')
     plt.savefig(figDir + 'time_mass.pdf')
-    plt.clf()
+
+    plt.figure(1)
+    plt.title('$\\ln{t}$ against $\\ln{N}$')
+    plt.legend()
+    plt.xlim(np.log(x_min), np.log(x_max))
+    plt.ylim(np.log(y_min), np.log(y_max) * 1.1)
+    plt.xlabel('$\\ln{N}$')
+    plt.ylabel('$\\ln{t}$')
     # plt.show()
+    plt.savefig(figDir + 'time_mass_lnln.pdf')
+    plt.clf()
+
     
 
-def LoadGrids(fileName:str, repeats:int) -> list[Grid]:
-    grids:list = []
-    with open(fileName) as file:
-        for i in range(repeats):
-            grids.append(IO.LoadGrid(file))
-
-    # TODO: check different repeats loaded
-    return grids
 
 
 def AnalyseError(folderName:str, figDir:str):
@@ -101,19 +139,17 @@ def AnalyseError(folderName:str, figDir:str):
             fn_inter = fn_by_inter[int_type][n]
 
             #gl: grid list
-            gl_brute:list = LoadGrids(fn_brute, NUM_REPEATS)
-            gl_inter:list = LoadGrids(fn_inter, NUM_REPEATS)
+            gl_brute:list = IO.LoadGrids(fn_brute, NUM_REPEATS)
+            gl_inter:list = IO.LoadGrids(fn_inter, NUM_REPEATS)
 
             err_n:list[list] = []
             allerr[n] = []
             
             for g_brute, g_inter in zip(gl_brute, gl_inter):
-                # TODO: check ordering of stuff
                 err_rep = []
                 for p_brute, p_inter in zip(g_brute.mParticles,
                                                 g_inter.mParticles):
                     
-                    # TODO: check elementwise operation
                     ac_brute = p_brute.accel
                     ac_inter = p_inter.accel
                     err = np.abs((ac_brute - ac_inter) / (ac_brute))
@@ -149,7 +185,7 @@ def AnalyseError(folderName:str, figDir:str):
             l = np.percentile(allerr[n], 5) / 10
             r = np.percentile(allerr[n], 95) * 10
             divs:int = 30
-            plt.title('Number of particles with in each error range')
+            plt.title(f'Error distribution (N = {n}, {int_type})')
             plt.xlabel('% error')
             plt.ylabel('Number of particles')
             plt.hist(allerr[n], bins=np.logspace(np.log10(l), np.log10(r), divs))
@@ -157,3 +193,47 @@ def AnalyseError(folderName:str, figDir:str):
             plt.savefig(figDir + int_type + '_hist_' + str(n) + '.pdf')
             plt.clf()
         
+
+def AnalyseExpansionOrder(fileName:str, figDir:str):
+    n, res = IO.LoadExpansionOrderResults(fileName)
+
+    p_list:list = list(res.keys())
+    min_p:int = min(p_list)
+    max_p:int = max(p_list)
+
+    avg_time_brute:float = np.average(res[min_p]['brute'])
+    plt.plot(p_list, [avg_time_brute for p in p_list], label = 'brute')
+
+    for int_type in ['bh', 'fmm']:
+        avg_list:list[float] = []
+        std_list:list[float] = []
+        for p in p_list:
+            avg_list.append(np.average(res[p][int_type]))
+            std_list.append(np.std(res[p][int_type]))
+
+
+        power_law = lambda x, a, b: a * (x**b)
+        a, b = sp.optimize.curve_fit(power_law,
+                                     p_list,
+                                     avg_list)[0]
+        p_dense = np.linspace(p_list[0], p_list[-1], 1000)
+        color = plt.plot(p_dense,
+                         [power_law(p, a, b) for p in p_dense],
+                         label = f'{int_type}, pow = {b:.2f}')[0].get_color()
+        plt.errorbar(p_list,
+                     avg_list,
+                     std_list,
+                     label = int_type,
+                     linestyle = '',
+                     marker = 'x',
+                     color = color)
+
+    plt.legend()
+    plt.title('Calculation time against order of multipole expansion')
+    plt.xlabel('Order of multipole expansion, $p$')
+    plt.ylabel('Average run-time $t / \\mu s$')
+    plt.xlim(min_p, max_p)
+    plt.ylim(0)
+    plt.savefig(figDir + 'time_p.pdf')
+    plt.clf()
+

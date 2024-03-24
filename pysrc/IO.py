@@ -56,6 +56,15 @@ def LoadGrid(file) -> Grid:
 
     return grid
 
+def LoadGrids(fileName:str, repeats:int) -> list[Grid]:
+    grids:list = []
+    with open(fileName) as file:
+        for i in range(repeats):
+            grids.append(LoadGrid(file))
+
+    # TODO: check different repeats loaded
+    return grids
+
 def LoadTimingResults(fileName:str) -> dict[str, dict[int, list[int]]]:
     with open(fileName) as file:
         line:str = file.readline()
@@ -82,3 +91,21 @@ def LoadTimingResults(fileName:str) -> dict[str, dict[int, list[int]]]:
 
         return int_results
 
+def LoadExpansionOrderResults(fileName:str) -> tuple[int, dict]:
+    with open(fileName) as file:
+        line:str = file.readline()
+        num_p, n = [int(x) for x in line.split()]
+        
+        res:dict = {}
+
+        for i in range(num_p):
+            p, int_types = [int(x) for x in file.readline().split()]
+            res[p] = {}
+
+            for j in range(int_types):
+                int_name, repeat = file.readline().split()
+                repeat = int(repeat)
+
+                res[p][int_name] = [int(x) for x in file.readline().split()]
+    
+    return n, res

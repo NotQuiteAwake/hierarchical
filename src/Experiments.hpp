@@ -19,6 +19,7 @@ int TimeUniformRun(Interaction const* interaction, int n, int seed);
 
 
 void TimeComplexity();
+void ExpansionOrderComplexity();
 
 }
 }

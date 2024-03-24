@@ -1,6 +1,6 @@
 #include "Experiments.hpp"
 
 int main() {
-    sim::exp::TimeComplexity();
+    sim::exp::ExpansionOrderComplexity();
     return 0;
 }
