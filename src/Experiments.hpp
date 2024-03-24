@@ -1,3 +1,6 @@
+#ifndef EXPERIMENTSHEADERDEF
+#define EXPERIMENTSHEADERDEF
+
 #include <string>
 #include "Interaction.hpp"
 
@@ -7,7 +10,6 @@ namespace exp {
 namespace {
 static const std::string dataDir = "./data/";
 
-void Log(const std::string& logMessage);
 void Err(const std::string& errMessage);
 
 bool CheckFile(const std::string& fileName, bool expect);
@@ -21,3 +23,4 @@ void TimeComplexity();
 }
 }
 
+#endif

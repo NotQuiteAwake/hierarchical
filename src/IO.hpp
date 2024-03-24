@@ -24,6 +24,8 @@ template<typename T> void DumpMatrix(const Matrix<T> matrix,
 bool FileExists(const std::string& fileName);
 void MakeDir(const std::string& dirName);
 
+void SetHexfloat(std::ostream& stream);
+
 Octant LoadOctant(std::istream& stream = std::cin);
 Vec LoadVec(std::istream& stream = std::cin);
 Particle LoadParticle(std::istream& stream = std::cin);

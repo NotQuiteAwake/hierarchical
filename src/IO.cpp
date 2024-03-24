@@ -72,6 +72,10 @@ void MakeDir(const std::string& dirName) {
     std::filesystem::create_directory(dirName);
 }
 
+void SetHexfloat(std::ostream& stream) {
+    stream << std::hexfloat;
+}
+
 Octant LoadOctant(std::istream& stream) {
     bool is_initialised;
     stream >> is_initialised;

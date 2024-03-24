@@ -5,7 +5,7 @@ BUILD_DIR = ./build
 TEST_DIR = ./tests
 SRC_DIR = ./src
 
-CXX = g++
+CXX = clang++
 CXX_FLAGS = -std=c++17 -Wall -Wextra -fsanitize=address -O0 -g -I$(TEST_DIR) -I$(SRC_DIR)
 
 BIN = test

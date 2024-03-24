@@ -18,10 +18,6 @@ namespace sim {
 namespace exp {
 
 namespace {
-void Log(const std::string& logMessage) {
-    std::clog << "(I) " << logMessage << std::endl;
-}
-
 void Err(const std::string& errMessage) {
     std::cerr << "(E) " << errMessage << std::endl;
 }
@@ -41,7 +37,11 @@ bool CheckFile(const std::string& fileName, bool expect) {
     return exists; 
 }
 
-int TimeUniformRun(Interaction const* interaction, int n, int seed) {
+int TimeUniformRun(Interaction const* interaction,
+                   int n,
+                   int seed,
+                   const std::string& fileName // dump destination
+                   ) {
     namespace time = std::chrono;
 
     // prepare grid
@@ -59,29 +59,41 @@ int TimeUniformRun(Interaction const* interaction, int n, int seed) {
     auto duration =
         time::duration_cast<std::chrono::microseconds>(end - start);
 
+    // save results for further analysis
+    std::ofstream stream;
+    stream.open(fileName, std::ios::app);
+    assert(stream.good());
+    IO::SetHexfloat(stream);
+
+    IO::DumpGrid(new_grid, stream);
+
     return duration.count();
 }
 
 }
 
 void TimeComplexity() {
-    Log("Begin TimeComplexity.");
-    Log("Make sure the governor is set to performance.");
+    std::clog << "Begin TimeComplexity." << std::endl;
+    std::clog << "Make sure the governor is set to performance." << std::endl;
 
     // need to find correct directory
     if (!CheckFile(dataDir, true)) { return; }
 
-    const std::string dir_name = dataDir + "complexity/";
-    const std::string comp_file_name = dir_name + "complexity.out";
-    IO::MakeDir(dir_name);
+    const std::string comp_dir_name = dataDir + "complexity/";
+    const std::string comp_file_name = comp_dir_name + "complexity.out";
+    const std::string dump_dir_name = comp_dir_name + "dump/";
+    IO::MakeDir(comp_dir_name);
 
     // do not overwrite
+    if (CheckFile(dump_dir_name, false)) { return; }
     if (CheckFile(comp_file_name, false)) { return; }
 
     // file IO
+    IO::MakeDir(dump_dir_name);
     std::ofstream stream;
     stream.open(comp_file_name);
     assert(stream.good());
+    IO::SetHexfloat(stream);
 
     // parameters
     const int p = 3;
@@ -112,7 +124,7 @@ void TimeComplexity() {
     const int int_max_n[int_types]{int(1e5), int(1e5), int(1e5)};
 
     // iteration settings
-    const int runs_per_fac_10 = 4; 
+    const int runs_per_fac_10 = 8; 
     const double factor = std::pow(10, 1.0 / runs_per_fac_10);
 
     // repeats for each iteration
@@ -127,14 +139,14 @@ void TimeComplexity() {
         double dn = min_n; // "double" n
         int runs = std::log(double(max_n) / min_n) / std::log(factor);
 
-        Log("Time measurements for " + int_names[i]);
+        std::clog << "Time measurements for " + int_names[i] << std::endl;
 
         stream << int_names[i] << " " << runs << std::endl;
 
         for (int j = 0; j <= runs; j++) {
             int n = int(dn);
-            Log("Run " + std::to_string(j + 1) + " of "
-                + std::to_string(runs + 1) + ", n = " + std::to_string(n));
+            std::clog << "Run " << j + 1 << " of " << runs + 1 << ", n = " << n
+                << std::endl;
 
             // timers for repeats
             long long time_sum = 0;
@@ -142,19 +154,24 @@ void TimeComplexity() {
             stream << n << " " << repeats << std::endl;
 
             for (int k = 0; k < repeats; k++) {
-                Log("Repeat " + std::to_string(k + 1) + " of "
-                        + std::to_string(repeats)
-                        );
+                std::clog << "Repeat " << k + 1 << " of " << repeats
+                    << std::endl;
                 
-                int repeat_time = TimeUniformRun(interactions[i].get(), n, k);
+                std::stringstream dump_file_name_ss;
+                dump_file_name_ss << dump_dir_name << int_names[i] << "_"
+                    << n << ".dump";
+                int repeat_time = TimeUniformRun(interactions[i].get(),
+                                                 n,
+                                                 k,
+                                                 dump_file_name_ss.str());
                 time_sum += repeat_time;
-                Log("Timed: " + std::to_string(repeat_time) + " us");
+                std::clog << "Timed: " << repeat_time << " us" << std::endl;
 
                 stream << repeat_time << " ";
             }
 
-            Log("Repeats finished. Average time: " + 
-                    std::to_string(double(time_sum) / repeats));
+            std::clog << "Repeats finished. Average time: " << 
+                (double(time_sum) / repeats) << std::endl;
 
             // measure next n
             dn *= factor;

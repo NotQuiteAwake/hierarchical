@@ -1,5 +1,6 @@
-#include "Integrator.hpp"
+#include "Experiments.hpp"
 
-using namespace sim;
-
-int main() {}
+int main() {
+    sim::exp::TimeComplexity();
+    return 0;
+}

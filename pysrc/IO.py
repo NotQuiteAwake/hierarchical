@@ -4,43 +4,55 @@ import matplotlib.pyplot as plt
 from Grid import Grid
 from Particle import Particle
 
+def LoadFloat(floatStr:str) -> float:
+    num = 0
+    try:
+        num = float(floatStr)
+    except ValueError:
+        num = float.fromhex(floatStr)
+    return num
+
 def LoadOctant(file):
     octant = np.zeros([3, 2])
+    line = file.readline()
+    if int(line) == 0:
+        return octant
+
     for i in range(3):
         line:str = file.readline()
-        octant[i] = [float(x) for x in line.split()]
+        octant[i] = [LoadFloat(x) for x in line.split()]
 
     return octant
         
 def LoadVec(file) -> npt.ArrayLike:
-    return np.array([float(x) for x in file.readline().split()])
+    return np.array([LoadFloat(x) for x in file.readline().split()])
 
 def LoadParticle(file) -> Particle:
-    mass, charge = [float(x) for x in file.readline().split()]
+    mass, charge = [LoadFloat(x) for x in file.readline().split()]
     par = Particle(mass, charge) 
     par.pos = LoadVec(file)
     par.vel = LoadVec(file)
     par.accel = LoadVec(file)
     return par
 
-def LoadGrid(fileName: str) -> Grid:
+def LoadGrid(file) -> Grid:
     grid = Grid()
-    with open(fileName) as file:
-        line:str = file.readline()
-        while (line == ""):
-            line = file.readline()
 
-        assert line.strip() == "BEGIN GRID"
+    line:str = file.readline()
+    while (line == ""):
+        line = file.readline()
 
-        grid.mMaxLim = LoadOctant(file)
-        grid.mOctant = LoadOctant(file)
+    assert line.strip() == "BEGIN GRID"
 
-        size:int = int(file.readline())
+    grid.mMaxLim = LoadOctant(file)
+    grid.mOctant = LoadOctant(file)
 
-        for i in range(size):
-            grid.mParticles.append(LoadParticle(file))
+    size:int = int(file.readline())
 
-        assert file.readline().strip() == "END GRID"
+    for i in range(size):
+        grid.mParticles.append(LoadParticle(file))
+
+    assert file.readline().strip() == "END GRID"
 
     return grid
 
@@ -54,12 +66,11 @@ def LoadTimingResults(fileName:str) -> dict[str, dict[int, list[int]]]:
             line = file.readline()
             int_name, runs = line.split()
             runs = int(runs) + 1
-            
+
             scaling:dict = {}
 
             for j in range(runs):
                 line = file.readline()
-                print(line)
                 n, repeats = [int(x) for x in line.split()] 
                 
                 line = file.readline()

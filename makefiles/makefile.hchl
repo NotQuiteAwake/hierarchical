@@ -5,9 +5,12 @@ BUILD_DIR = ./build
 TEST_DIR = ./tests
 SRC_DIR = ./src
 
-CXX = g++
+CXX = clang++
 CXX_FLAGS = -std=c++17 -Wall -Wextra -O3 -I$(TEST_DIR) -I$(SRC_DIR) -DNDEBUG\
 			-ftree-vectorize -flto -finline-small-functions -march=native
+#			-fno-math-errno -ffinite-math-only -fno-signed-zeros\
+#			-fno-trapping-math -fno-signaling-nans
+#			-ffast-math -funroll-loops
 
 BIN = hchl
 
