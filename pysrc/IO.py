@@ -109,3 +109,23 @@ def LoadExpansionOrderResults(fileName:str) -> tuple[int, dict]:
                 res[p][int_name] = [int(x) for x in file.readline().split()]
     
     return n, res
+
+def LoadThetaResults(fileName:str) -> tuple[float, dict]:
+    with open(fileName) as file:
+        line:str = file.readline()
+        num_theta, n = [int(x) for x in line.split()]
+        
+        res:dict = {}
+
+        for i in range(num_theta):
+            theta, int_types = [LoadFloat(x) for x in file.readline().split()]
+            int_types = int(int_types)
+            res[theta] = {}
+
+            for j in range(int_types):
+                int_name, repeat = file.readline().split()
+                repeat = int(repeat)
+
+                res[theta][int_name] = [int(x) for x in file.readline().split()]
+    
+    return n, res

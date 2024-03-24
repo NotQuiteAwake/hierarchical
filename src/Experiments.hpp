@@ -17,9 +17,9 @@ bool CheckFile(const std::string& fileName, bool expect);
 int TimeUniformRun(Interaction const* interaction, int n, int seed);
 }
 
-
 void TimeComplexity();
 void ExpansionOrderComplexity();
+void ThetaComplexity();
 
 }
 }

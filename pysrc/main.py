@@ -9,13 +9,17 @@ def main():
 #    Analysis.AnalyseError(comp_dir + 'dump-clang/',
 #                          comp_dir + 'error/')
 
-    p_comp_dir = data_dir + 'p-complexity/'
-    #Analysis.AnalyseExpansionOrder(p_comp_dir + 'complexity.out',
-    #                               p_comp_dir + 'analysis/')
+#    p_comp_dir = data_dir + 'p-complexity/'
+#    Analysis.AnalyseExpansionOrder(p_comp_dir + 'complexity.out',
+#                                   p_comp_dir + 'analysis/')
+#
+#    Analysis.AnalyseExpansionError(p_comp_dir + 'dump/',
+#                                   p_comp_dir + 'error/')
+    theta_comp_dir = data_dir + 'theta-complexity/'
+    Analysis.AnalyseTheta(theta_comp_dir + 'complexity.out',
+                          theta_comp_dir + 'analysis/')
 
-    Analysis.AnalyseExpansionError(p_comp_dir + 'dump/',
-                                   p_comp_dir + 'error/')
-
-
+    Analysis.AnalyseThetaError(theta_comp_dir + 'dump/',
+                               theta_comp_dir + 'error/')
 if __name__ == '__main__':
     main()

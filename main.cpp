@@ -1,6 +1,6 @@
 #include "Experiments.hpp"
 
 int main() {
-    sim::exp::ExpansionOrderComplexity();
+    sim::exp::ThetaComplexity();
     return 0;
 }

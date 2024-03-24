@@ -336,3 +336,146 @@ def AnalyseExpansionError(folderName:str, figDir:str):
 
         plt.savefig(f'{figDir}err_p_{int_type}')
         plt.clf()
+
+
+def AnalyseTheta(fileName:str, figDir:str):
+    n, res = IO.LoadThetaResults(fileName)
+
+    theta_list:list = sorted(list(res.keys()))
+    theta_min:int = min(theta_list)
+    theta_max:int = max(theta_list)
+
+    avg_time_brute:float = np.average(res[theta_min]['brute'])
+    plt.plot(theta_list, [avg_time_brute for t in theta_list], label = 'brute')
+
+    for int_type in ['bh', 'fmm']:
+        avg_list:list[float] = []
+        std_list:list[float] = []
+        for t in theta_list:
+            avg_list.append(np.average(res[t][int_type]))
+            std_list.append(np.std(res[t][int_type]))
+
+
+       # power_law = lambda x, a, b: a * (x**b)
+       # a, b = sp.optimize.curve_fit(power_law,
+       #                              theta_list,
+       #                              avg_list)[0]
+       # p_dense = np.linspace(p_list[0], p_list[-1], 1000)
+       # color = plt.plot(p_dense,
+       #                  [power_law(p, a, b) for p in p_dense],
+       #                  label = f'{int_type}, pow = {b:.2f}')[0].get_color()
+        plt.errorbar(theta_list,
+                     avg_list,
+                     std_list,
+                     label = int_type,
+                     linestyle = '--',
+                     marker = 'x')
+
+    plt.title('Computation time against opening angle')
+    plt.xlabel('Opening angle $\\theta$')
+    plt.ylabel('Time / $\\mu s$')
+    plt.legend()
+    plt.xlim(theta_min, theta_max)
+    plt.savefig(f'{figDir}time_theta.pdf')
+    plt.clf()
+
+
+def AnalyseThetaError(folderName:str, figDir:str):
+    file_names:list[str] = [folderName + f for f in os.listdir(folderName)]
+    file_names = sorted([f for f in file_names if os.path.isfile(f)])
+
+    # result by type of interaction
+    fn_by_inter:dict[str, dict[float, str]] = {
+            'brute': {},
+            'bh': {},
+            'fmm': {}
+            }
+
+    # because I forgot to print this in the .dump files. Haha.
+    NUM_REPEATS:int = 10
+
+    # file read-in
+    for file_name in file_names:
+        param:list[str] = file_name.split('/')[-1].strip('.dump').split('_')
+        int_type:str = param[0]
+        n:int = int(param[1])
+        theta:float = float(param[2])
+            
+        fn_by_inter[int_type][theta] = file_name
+
+    theta_list:list[float] = sorted(list(fn_by_inter['bh'].keys()))
+    theta_min:float = min(theta_list)
+    theta_max:float = max(theta_list)
+
+    # process error
+    for int_type, p_dict in fn_by_inter.items():
+        if int_type == 'brute':
+            continue
+
+        print(int_type)
+
+        # all errors at each p
+        allerr:dict[float, list[float]] = {}
+
+        for theta in theta_list:
+            print(theta)
+
+            # fn: file_name
+            fn_brute = fn_by_inter['brute'][theta_min]
+            fn_inter = fn_by_inter[int_type][theta]
+
+            #gl: grid list
+            gl_brute:list = IO.LoadGrids(fn_brute, NUM_REPEATS)
+            gl_inter:list = IO.LoadGrids(fn_inter, NUM_REPEATS)
+
+            allerr[theta] = []
+            
+            for g_brute, g_inter in zip(gl_brute, gl_inter):
+                err_rep = []
+                for p_brute, p_inter in zip(g_brute.mParticles,
+                                                g_inter.mParticles):
+                    
+                    ac_brute = p_brute.accel
+                    ac_inter = p_inter.accel
+                    err = np.abs((ac_brute - ac_inter) / (ac_brute))
+                          
+                    allerr[theta].append(np.mean(err))
+    
+        for theta in theta_list:
+            l = np.percentile(allerr[theta], 5) / 10
+            r = np.percentile(allerr[theta], 95) * 10
+            divs:int = 30
+            plt.title(f'Error distribution (theta = {theta}, {int_type})')
+            plt.xlabel('error')
+            plt.ylabel('Number of particles')
+            plt.hist(allerr[theta],
+                     bins=np.logspace(np.log10(l), np.log10(r), divs))
+            plt.xlim(l, r)
+            plt.gca().set_xscale("log")
+            plt.savefig(f'{figDir}{int_type}_hist_{theta}.pdf')
+            plt.clf()
+
+        perc5_list = [np.percentile(allerr[t], 5) for t in theta_list]
+        perc95_list = [np.percentile(allerr[t], 95) for t in theta_list]
+        mean_err_list = [np.mean(allerr[t]) for t in theta_list]
+
+        def plotter(y:list, err_type:str):
+            lny = np.log(y)
+
+            color = plt.plot(theta_list,
+                             lny,
+                             label = err_type,
+                             linestyle = '--',
+                             marker = 'x')[0].get_color()
+
+        plotter(mean_err_list, 'mean error')
+        plotter(perc5_list, '5th percentile error')
+        plotter(perc95_list, '95th percentile error')
+        plt.title(f"Error against opening angle $\\theta$")
+        plt.xlabel('Opening angle $\\theta$')
+        plt.ylabel('ln(relative error)')
+        plt.legend()
+        plt.xlim(theta_min, theta_max)
+
+        plt.savefig(f'{figDir}err_theta_{int_type}.pdf')
+        plt.clf()
