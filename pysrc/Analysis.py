@@ -3,6 +3,7 @@ import os
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 import scipy as sp
 
 import IO
@@ -479,3 +480,60 @@ def AnalyseThetaError(folderName:str, figDir:str):
 
         plt.savefig(f'{figDir}err_theta_{int_type}.pdf')
         plt.clf()
+
+def VisualiseGrid(grid:Grid, fig = plt.figure()):
+    mass_list:list = [p.mass for p in grid.mParticles]
+    pos_list:list = [p.pos for p in grid.mParticles] 
+    
+    x_list:list = [p[0] for p in pos_list]
+    y_list:list = [p[1] for p in pos_list]
+    z_list:list = [p[2] for p in pos_list]
+
+    ax = plt.gca()
+    ax.clear()
+    ax.scatter(x_list,
+               y_list,
+               z_list,
+               marker = 'o',
+               s = mass_list,
+               alpha = 0.8)
+    # TODO: have c++ end output a scale parameter
+    scale:float = 20
+    ax.set_xlim(-scale, scale)
+    ax.set_ylim(-scale, scale)
+    ax.set_zlim(-scale, scale)
+
+
+def AnimateGrid(grids:dict[float, Grid], fileName:str):
+    grid_list:list[Grid] = list(grids.values())
+    fig = plt.figure()
+    ax = fig.add_subplot(projection = '3d')
+
+    def animate(i:int):
+        VisualiseGrid(grid_list[i], fig)
+
+    ani = FuncAnimation(fig,
+                        animate,
+                        frames = len(grids),
+                        interval = 30,
+                        repeat = False)
+    ffwriter = FFMpegWriter(fps=60,
+                            bitrate=5000)
+    ani.save(fileName,
+             writer=ffwriter)
+    
+def LoadEvo(fileName:str)->tuple[str, list, dict[float, Grid]]:
+    with open(fileName) as file:
+        int_name:str = file.readline().strip()
+        step_cnts, step = [float(x) for x in file.readline().split()]
+        step_cnts = int(step_cnts)
+
+        timing_list:list[int] = []
+        grids:dict[float, Grid] = {}
+        for i in range(step_cnts):
+            t:float = i * step
+            grids[t] = IO.LoadGrid(file)
+            timing_list.append(int(file.readline()))
+
+        return int_name, timing_list, grids
+

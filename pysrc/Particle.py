@@ -10,5 +10,5 @@ class Particle:
     charge:float
 
     def __init__(self, _mass:float, _charge:float):
-        mass = _mass
-        charge = _charge
+        self.mass = _mass
+        self.charge = _charge

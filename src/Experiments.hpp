@@ -21,6 +21,8 @@ void TimeComplexity();
 void ExpansionOrderComplexity();
 void ThetaComplexity();
 
+void ColdStartSim();
+
 }
 }
 

@@ -3,10 +3,13 @@
 #include <memory>
 #include <chrono>
 #include <fstream>
+#include <iostream>
+#include <iomanip>
 
 #include "Experiments.hpp"
 
 #include "Interaction.hpp"
+#include "Integrator.hpp"
 #include "Brute.hpp"
 #include "Barnes-Hut.hpp"
 #include "FMM.hpp"
@@ -408,6 +411,104 @@ void ThetaComplexity() {
         // measure next interaction type
     }
 }
+
+void ColdStartSim() {
+    const std::string dump_dir = "./data/cold/";
+    const int p = 3;
+    const double G = -1;
+    const double theta = 0.5;
+    const int maxPerCell = 5;
+    const int maxPairwiseLimit = 3; 
+
+    const auto invsq_force = std::make_unique<InvSqForce>(G);
+    auto invsq_ker = std::make_unique<InvSqKernels>(p, G);
+
+    const int int_types = 3;
+    std::unique_ptr<Interaction> interactions[int_types] = {
+        std::make_unique<Brute>(invsq_force.get()),
+        std::make_unique<BarnesHut>(p,
+                theta,
+                invsq_ker.get(),
+                invsq_force.get()),
+        std::make_unique<FMM>(p,
+                theta,
+                maxPerCell,
+                maxPairwiseLimit,
+                invsq_ker.get(),
+                invsq_force.get())
+    };
+    const std::string int_names[int_types]{"brute", "bh", "fmm"};
+
+    const double step = 0.01;
+    const double evo_time = 10;
+    const int steps_cnt = evo_time / step;
+    const auto integrator = std::make_unique<LeapFrog>(step);
+
+    const double scale = 20;
+    const double max_ratio = 10;
+    const Octant max_limit({{-scale * max_ratio, scale * max_ratio},
+                            {-scale * max_ratio, scale * max_ratio},
+                            {-scale * max_ratio, scale * max_ratio}});
+
+    dist::SetSeed(0);
+    const int n = 1000;
+    const double mean_mass = 10;
+    const double sigma_mass = 1;
+    Grid grid(n);
+    const Vec centre({0, 0, 0});
+    const double R = scale / 2;
+    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
+    par_list = dist::SetColdStart(centre, R, par_list);
+    for (const Particle& par : par_list) {
+        grid.AddParticle(par);
+    }
+    
+    // just in case we forget we shouldn't change this...
+    const Grid orig_grid = grid;
+    
+    namespace time = std::chrono;
+    std::clog << std::fixed << std::setprecision(2);
+
+    for (int i = 0; i < int_types; i++) {
+        const std::string& int_name = int_names[i];
+
+        std::clog << int_name << std::endl;
+
+        Grid sim_grid = orig_grid;
+        Interaction* const interaction = interactions[i].get();
+        
+        const std::string file_name = dump_dir + int_names[i] + ".dump";
+        if (CheckFile(file_name, false)) {
+            return;
+        }
+        std::ofstream stream;
+        stream.open(file_name);
+        assert(stream.good());
+        IO::SetHexfloat(stream);
+
+        stream << int_name << std::endl;
+        stream << steps_cnt << " " << step << std::endl;
+
+        sim_grid = interaction->Calculate(grid);
+        for (int j = 0; j < steps_cnt; j++) {
+            const double t = j * step;
+            if (j > 0 && j % 10 == 0) std::clog << std::endl;
+            std::clog << t << " ";
+            
+            IO::DumpGrid(sim_grid, stream);
+            auto start = time::high_resolution_clock::now();
+            sim_grid = integrator->Evolve(sim_grid);
+            sim_grid = interaction->Calculate(sim_grid);
+            auto end = time::high_resolution_clock::now();
+            auto duration =
+                time::duration_cast<std::chrono::microseconds>(end - start);
+            stream << duration.count() << std::endl;
+        }
+
+        std::clog << std::endl;    
+    }
+}
+
 
 }
 }
