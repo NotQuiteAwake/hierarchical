@@ -1,6 +1,6 @@
 #include "Experiments.hpp"
 
 int main() {
-    sim::exp::ColdStartSim();
+    sim::exp::ThinDiskSim();
     return 0;
 }

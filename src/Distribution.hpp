@@ -55,8 +55,9 @@ std::vector<Particle>& SetPlummerSphere(
         );
 std::vector<Particle>& SetDiskPos(
         const Vec& posCentre,
-        const Vec& axis,
+        const Vec& axis, // axis of disk
         double r0, // r_0
+        double z_spread, // spread along axis
         std::vector<Particle>& list
         );
 std::vector<Particle>& SetUniformVel(

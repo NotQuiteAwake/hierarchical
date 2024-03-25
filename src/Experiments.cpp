@@ -412,8 +412,11 @@ void ThetaComplexity() {
     }
 }
 
-void ColdStartSim() {
-    const std::string dump_dir = "./data/cold/";
+namespace {
+void SimulationHelper(const std::string dump_dir,
+                      const Grid& grid,
+                      const double scale
+                      ) {
     const int p = 3;
     const double G = -1;
     const double theta = 0.5;
@@ -443,30 +446,7 @@ void ColdStartSim() {
     const double evo_time = 10;
     const int steps_cnt = evo_time / step;
     const auto integrator = std::make_unique<LeapFrog>(step);
-
-    const double scale = 20;
-    const double max_ratio = 10;
-    const Octant max_limit({{-scale * max_ratio, scale * max_ratio},
-                            {-scale * max_ratio, scale * max_ratio},
-                            {-scale * max_ratio, scale * max_ratio}});
-
-    const int seed = 1;
-    dist::SetSeed(seed);
-    const int n = 1000;
-    const double mean_mass = 10;
-    const double sigma_mass = 1;
-    Grid grid(n);
-    const Vec centre({0, 0, 0});
-    const double R = scale / 2;
-    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
-    par_list = dist::SetSphericalPos(centre, R, par_list);
-    for (const Particle& par : par_list) {
-        grid.AddParticle(par);
-    }
-    
-    // just in case we forget we shouldn't change this...
-    const Grid orig_grid = grid;
-    
+   
     namespace time = std::chrono;
     std::clog << std::fixed << std::setprecision(2);
 
@@ -475,7 +455,7 @@ void ColdStartSim() {
 
         std::clog << int_name << std::endl;
 
-        Grid sim_grid = orig_grid;
+        Grid sim_grid = grid;
         Interaction* const interaction = interactions[i].get();
         
         const std::string file_name = dump_dir + int_names[i] + ".dump";
@@ -512,7 +492,71 @@ void ColdStartSim() {
         std::clog << std::endl;    
     }
 }
+}
 
+void ColdStartSim() {
+    const std::string dump_dir = "./data/cold/";
+    const double seed = 1;
+    dist::SetSeed(seed);
+
+    const double scale = 20;
+
+    const int n = 1000;
+    Grid grid(n);
+    const double mean_mass = 10;
+    const double sigma_mass = 1;
+    const Vec centre({0, 0, 0});
+    const double R = scale / 2;
+    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
+    par_list = dist::SetSphericalPos(centre, R, par_list);
+    for (const Particle& par : par_list) {
+        grid.AddParticle(par);
+    }
+    
+    SimulationHelper(dump_dir, grid, scale);
+}
+
+void ThinDiskSim() {
+    const std::string dump_dir = "./data/disk/";
+    const double seed = 10;
+    dist::SetSeed(seed);
+
+    const int n = 500;
+    Grid grid(n);
+
+    const double mean_mass = 10;
+    const double sigma_mass = 1;
+
+    const Vec centre({0, 0, 0});
+    const Vec axis({0, 0, 1});
+    const double scale = 20;
+    const double R = scale;
+    const double z_spread = 0.5;
+
+    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
+    par_list = dist::SetDiskPos(centre, axis, R, z_spread, par_list);
+
+    {
+        // find PE. REQUIRES SimulationHelper to have G = -1.
+        Grid grid(par_list);
+        auto force = std::make_unique<InvSqForce>();
+        auto brute = std::make_unique<Brute>(force.get());
+        grid = brute->Calculate(grid);
+        const double PE = grid.GetPE();
+
+        // expectation from virial thm
+        const double KE = -1.0 / 2 * PE;
+        const double I = 1.0 / 2 * (mean_mass * n) * (R * R); // MOI
+        const Vec omega = axis * std::sqrt(2 * KE / I);
+        par_list = dist::SetUniformRotVel(centre, omega, par_list);
+    }
+
+    for (const Particle& par : par_list) {
+        grid.AddParticle(par);
+    }
+    
+    SimulationHelper(dump_dir, grid, scale);
+}
 
 }
 }

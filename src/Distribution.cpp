@@ -119,18 +119,25 @@ std::vector<Particle>& SetDiskPos(
         const Vec& posCentre,
         const Vec& axis,
         double r0,
+        double z_spread,
         std::vector<Particle>& list
         ) {
     list = SetSphericalPos(Vec(), r0, list);
-    for (Particle& par : list) {
+
+    int n = list.size();
+    std::vector<double> z = GenNormal(0, z_spread, n);
+
+    for (int i = 0; i < n; i++) {
+        Particle& par = list[i];
         Vec& pos = par.pos;
         double par_norm = pos.GetNorm();
+
         // map into plane of disk
         pos = CrossProduct(pos, axis) / axis.GetNorm();
         // but maintain the uniform distribution in r
         pos = pos / pos.GetNorm() * par_norm;
-        // finally shift from origin
-        pos += posCentre;
+        // finally shift from origin and offset along axis
+        pos += posCentre + axis * z[i];
     }
     return list;
 }
