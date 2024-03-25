@@ -32,6 +32,8 @@ void SimulationHelper(const std::string dump_dir,
 
 void ColdStartSim();
 void ThinDiskSim();
+void GalaxySim();
+void TwoGalaxiesSim();
 
 }
 }

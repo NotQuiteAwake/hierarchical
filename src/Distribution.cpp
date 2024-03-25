@@ -88,11 +88,12 @@ std::vector<Particle>& SetNormalPos(
 
 std::vector<Particle>& SetSphericalPos(
         const Vec& posCentre,
-        double R,
+        double r0,
+        double r1,
         std::vector<Particle>& list
         ) {
     int n = list.size();
-    std::vector<double> r = GenUniform(0, R, n);
+    std::vector<double> r = GenUniform(r0, r1, n);
     std::vector<double> theta = GenUniform(0, PI(), n);
     std::vector<double> phi = GenUniform(0, 2 * PI(), n);
     
@@ -119,10 +120,11 @@ std::vector<Particle>& SetDiskPos(
         const Vec& posCentre,
         const Vec& axis,
         double r0,
+        double r1,
         double z_spread,
         std::vector<Particle>& list
         ) {
-    list = SetSphericalPos(Vec(), r0, list);
+    list = SetSphericalPos(Vec(), r0, r1, list);
 
     int n = list.size();
     std::vector<double> z = GenNormal(0, z_spread, n);
@@ -138,6 +140,32 @@ std::vector<Particle>& SetDiskPos(
         pos = pos / pos.GetNorm() * par_norm;
         // finally shift from origin and offset along axis
         pos += posCentre + axis * z[i];
+    }
+    return list;
+}
+
+std::vector<Particle>& SetCircVel(
+        const Vec& centre,
+        const Vec& axis,
+        const double alpha,
+        std::vector<Particle>& list
+        ) {
+    for (Particle& par : list) {
+        const Vec r = par.pos - centre;
+        const double dist = r.GetNorm();
+        const double omega_val = sqrt(alpha / (dist * dist * dist));
+        const Vec omega = axis / axis.GetNorm() * omega_val;
+        par.vel = CrossProduct(omega, r);
+    }
+    return list;
+}
+
+std::vector<Particle>& AddUniformVel(
+        const Vec& boost,
+        std::vector<Particle>& list
+        ) {
+    for (Particle& par : list) {
+        par.vel += boost;
     }
     return list;
 }

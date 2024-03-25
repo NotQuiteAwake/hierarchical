@@ -1,6 +1,6 @@
 #include "Experiments.hpp"
 
 int main() {
-    sim::exp::ThinDiskSim();
+    sim::exp::TwoGalaxiesSim();
     return 0;
 }

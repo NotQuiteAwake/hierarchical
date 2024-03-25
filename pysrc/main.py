@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import matplotlib.pyplot as plt
 import Analysis
 
@@ -26,8 +27,12 @@ def main():
 #    cold_dir = data_dir + 'cold/'
 #    Analysis.AnalyseEvo(cold_dir, cold_dir + 'analysis/')
 
-    galaxy_dir = data_dir + 'disk/'
-    Analysis.AnalyseEvo(galaxy_dir, galaxy_dir + 'analysis/')
+#    disk_dir = data_dir + 'disk/'
+#    Analysis.AnalyseEvo(disk_dir, disk_dir + 'analysis/')
+
+    two_galaxy_dir = data_dir + 'two-galaxies/'
+    Analysis.AnalyseEvo(two_galaxy_dir, two_galaxy_dir + 'analysis/')
+
 
 if __name__ == '__main__':
     main()

@@ -40,7 +40,8 @@ std::vector<Particle>& SetNormalPos(
         );
 std::vector<Particle>& SetSphericalPos(
         const Vec& posCentre,
-        double R,   // maximum radius
+        double r0,   // minimum radius
+        double r1,   // maximum radius
         std::vector<Particle>& list
         );
 std::vector<Particle>& SetUniformRotVel(
@@ -56,7 +57,8 @@ std::vector<Particle>& SetPlummerSphere(
 std::vector<Particle>& SetDiskPos(
         const Vec& posCentre,
         const Vec& axis, // axis of disk
-        double r0, // r_0
+        double r0, // min radius
+        double r1, // max radius
         double z_spread, // spread along axis
         std::vector<Particle>& list
         );
@@ -70,9 +72,18 @@ std::vector<Particle>& SetNormalVel(
         double spread,
         std::vector<Particle>& list
         );
+std::vector<Particle>& SetCircVel(
+        const Vec& centre,
+        const Vec& axis,
+        const double alpha,
+        std::vector<Particle>& list
+        );
+std::vector<Particle>& AddUniformVel(
+        const Vec& boost,
+        std::vector<Particle>& list
+        );
 }
 
 }
-
 #endif
 

@@ -498,7 +498,7 @@ def VisualiseGrid(grid:Grid,
                y_list,
                z_list,
                marker = 'o',
-               s = mass_list,
+               s = np.log(mass_list),
                alpha = 0.8)
     
     ax.set_title(title)
@@ -522,6 +522,10 @@ def AnimateGrid(grids:dict[float, Grid],
         _title = int_type + " "
 
     def animate(i:int):
+        if (i != 0 and i % 10 == 0):
+            print()
+
+        print(f'{t_list[i]:.2f}', "", end = '')
         VisualiseGrid(grid_list[i],
                       scale,
                       title = _title + f"t = {t_list[i]:.2f}",
@@ -539,6 +543,7 @@ def AnimateGrid(grids:dict[float, Grid],
     
     # clean after ourselves
     fig.clf()
+    print()
     
 
 # the sc2 player, yes.

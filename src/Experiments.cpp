@@ -508,7 +508,7 @@ void ColdStartSim() {
     const Vec centre({0, 0, 0});
     const double R = scale / 2;
     auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
-    par_list = dist::SetSphericalPos(centre, R, par_list);
+    par_list = dist::SetSphericalPos(centre, 0, R, par_list);
     for (const Particle& par : par_list) {
         grid.AddParticle(par);
     }
@@ -534,7 +534,7 @@ void ThinDiskSim() {
     const double z_spread = 0.5;
 
     auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
-    par_list = dist::SetDiskPos(centre, axis, R, z_spread, par_list);
+    par_list = dist::SetDiskPos(centre, axis, 0, R, z_spread, par_list);
 
     {
         // find PE. REQUIRES SimulationHelper to have G = -1.
@@ -555,6 +555,92 @@ void ThinDiskSim() {
         grid.AddParticle(par);
     }
     
+    SimulationHelper(dump_dir, grid, scale);
+}
+
+void GalaxySim() {
+    const std::string dump_dir = "./data/galaxy/";
+    const double seed = 10;
+    dist::SetSeed(seed);
+
+    const int n = 1000;
+    Grid grid(n);
+
+    const Vec centre({0, 0, 0});
+    const Vec axis({0, 0, 1});
+
+    const double mean_mass = 40;
+    const double sigma_mass = 7;
+    const double smbh_mass = 5 * mean_mass * n;
+    Particle smbh(smbh_mass, smbh_mass);
+    smbh.pos = centre;
+
+    const double scale = 50;
+    const double r0 = scale / 10;
+    const double r1 = scale;
+    const double z_spread = 5;
+
+    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
+    par_list = dist::SetDiskPos(centre, axis, r0, r1, z_spread, par_list);
+
+    const double G = 1;
+    const double alpha = G * smbh_mass;
+    par_list = dist::SetCircVel(centre, axis, alpha, par_list);
+
+    par_list.push_back(smbh);
+
+    for (const Particle& par : par_list) {
+        grid.AddParticle(par);
+    }
+    
+    SimulationHelper(dump_dir, grid, scale);
+}
+
+void TwoGalaxiesSim() {
+    const std::string dump_dir = "./data/two-galaxies/";
+    const double seed = 2333; // 20
+    dist::SetSeed(seed);
+
+    const int n = 1000;
+    Grid grid(2 * n);
+
+    const double mean_mass = 40;
+    const double sigma_mass = 7;
+    const double smbh_mass = 5 * mean_mass * n;
+
+    const double scale = 75;
+    const double r1 = scale / 2; // 1.5
+    const double r0 = r1 / 7;
+    const double z_spread = r1 / 10;
+    const Vec centres[2] = {Vec({-scale / 2.5, 0, 0}), Vec({scale / 2.5, 0, 0})};
+    const double dist_centres = scale / 2;
+    const Vec axes[2] = {Vec({1, -0.5, 1}), Vec({-0.5, -0.5, 1})};
+
+    for (int i = 0; i < 2; i++) {
+        const Vec& centre = centres[i];
+        const Vec& axis = axes[i];
+
+        Particle smbh(smbh_mass, smbh_mass);
+        smbh.pos = centre;
+
+        auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
+        par_list = dist::SetDiskPos(centre, axis, r0, r1, z_spread, par_list);
+
+        const double G = 1;
+        const double alpha = G * smbh_mass;
+        par_list = dist::SetCircVel(centre, axis, alpha, par_list);
+
+        par_list.push_back(smbh);
+        // circular motion of the smbh
+        const Vec boost = Vec({0, 1, 0}) * (i ? 1 : -1)
+                          * std::sqrt(G * smbh_mass / (dist_centres * 2));
+        par_list = dist::AddUniformVel(boost, par_list);
+
+        for (const Particle& par : par_list) {
+            grid.AddParticle(par);
+        }
+    }
+
     SimulationHelper(dump_dir, grid, scale);
 }
 
