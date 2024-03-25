@@ -27,6 +27,13 @@ class Grid {
         Particle operator[](int index) const;
 
         void AddParticle(const Particle& par);
+        double GetPE() const;
+        double GetKE() const;
+        double GetE() const;
+        Vec GetCOM() const;
+        Vec GetL(const Vec centre = Vec({0, 0, 0})) const;
+        Vec GetP() const;
+
         void SetOctant(const Octant& octant);
         void Reserve(int size);
 };

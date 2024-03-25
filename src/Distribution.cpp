@@ -86,7 +86,7 @@ std::vector<Particle>& SetNormalPos(
     return list;
 }
 
-std::vector<Particle>& SetColdStart(
+std::vector<Particle>& SetSphericalPos(
         const Vec& posCentre,
         double R,
         std::vector<Particle>& list
@@ -102,6 +102,38 @@ std::vector<Particle>& SetColdStart(
     }
     return list; 
 }
-    
+
+std::vector<Particle>& SetUniformRotVel(
+        const Vec& posCentre,
+        const Vec& omega,
+        std::vector<Particle>& list
+        ) {
+    for (Particle& par : list) {
+        const Vec r = par.pos - posCentre;
+        par.vel = CrossProduct(omega, r);
+    }    
+    return list;
+}
+
+std::vector<Particle>& SetDiskPos(
+        const Vec& posCentre,
+        const Vec& axis,
+        double r0,
+        std::vector<Particle>& list
+        ) {
+    list = SetSphericalPos(Vec(), r0, list);
+    for (Particle& par : list) {
+        Vec& pos = par.pos;
+        double par_norm = pos.GetNorm();
+        // map into plane of disk
+        pos = CrossProduct(pos, axis) / axis.GetNorm();
+        // but maintain the uniform distribution in r
+        pos = pos / pos.GetNorm() * par_norm;
+        // finally shift from origin
+        pos += posCentre;
+    }
+    return list;
+}
+
 }
 }

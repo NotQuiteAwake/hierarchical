@@ -30,6 +30,7 @@ Particle& BarnesHut::EvaluateAccel(
             // different single particle node
             const Particle& par2 = node->GetParticle(node->mSouls[0]);
             par.accel += GetForce(par, par2) / par.GetMass();
+            par.pot += GetPot(par, par2);
             return par;
         }
     } else if (IsFarAway(node, par)) {

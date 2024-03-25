@@ -14,6 +14,7 @@ class Interaction {
 
     protected:
         Vec GetForce(const Particle& p1, const Particle& p2) const;
+        double GetPot(const Particle& p1, const Particle& p2) const;
 
     public:
         // allows for polymorphism.

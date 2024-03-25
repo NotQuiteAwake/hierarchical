@@ -450,7 +450,8 @@ void ColdStartSim() {
                             {-scale * max_ratio, scale * max_ratio},
                             {-scale * max_ratio, scale * max_ratio}});
 
-    dist::SetSeed(0);
+    const int seed = 1;
+    dist::SetSeed(seed);
     const int n = 1000;
     const double mean_mass = 10;
     const double sigma_mass = 1;
@@ -458,7 +459,7 @@ void ColdStartSim() {
     const Vec centre({0, 0, 0});
     const double R = scale / 2;
     auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
-    par_list = dist::SetColdStart(centre, R, par_list);
+    par_list = dist::SetSphericalPos(centre, R, par_list);
     for (const Particle& par : par_list) {
         grid.AddParticle(par);
     }
@@ -487,7 +488,7 @@ void ColdStartSim() {
         IO::SetHexfloat(stream);
 
         stream << int_name << std::endl;
-        stream << steps_cnt << " " << step << std::endl;
+        stream << steps_cnt << " " << step << " " << scale << std::endl;
 
         sim_grid = interaction->Calculate(grid);
         for (int j = 0; j < steps_cnt; j++) {
@@ -502,7 +503,10 @@ void ColdStartSim() {
             auto end = time::high_resolution_clock::now();
             auto duration =
                 time::duration_cast<std::chrono::microseconds>(end - start);
-            stream << duration.count() << std::endl;
+            stream << duration.count() << " " << sim_grid.GetPE() << " "
+                   << sim_grid.GetKE() << std::endl;
+            IO::DumpVec(sim_grid.GetL(), stream);
+            IO::DumpVec(sim_grid.GetP(), stream);
         }
 
         std::clog << std::endl;    

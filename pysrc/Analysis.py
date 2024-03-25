@@ -481,7 +481,10 @@ def AnalyseThetaError(folderName:str, figDir:str):
         plt.savefig(f'{figDir}err_theta_{int_type}.pdf')
         plt.clf()
 
-def VisualiseGrid(grid:Grid, fig = plt.figure()):
+def VisualiseGrid(grid:Grid,
+                  scale: float,
+                  title:str = None,
+                  fig = plt.figure()):
     mass_list:list = [p.mass for p in grid.mParticles]
     pos_list:list = [p.pos for p in grid.mParticles] 
     
@@ -489,7 +492,7 @@ def VisualiseGrid(grid:Grid, fig = plt.figure()):
     y_list:list = [p[1] for p in pos_list]
     z_list:list = [p[2] for p in pos_list]
 
-    ax = plt.gca()
+    ax = fig.gca()
     ax.clear()
     ax.scatter(x_list,
                y_list,
@@ -497,20 +500,32 @@ def VisualiseGrid(grid:Grid, fig = plt.figure()):
                marker = 'o',
                s = mass_list,
                alpha = 0.8)
+    
+    ax.set_title(title)
     # TODO: have c++ end output a scale parameter
-    scale:float = 20
     ax.set_xlim(-scale, scale)
     ax.set_ylim(-scale, scale)
     ax.set_zlim(-scale, scale)
 
 
-def AnimateGrid(grids:dict[float, Grid], fileName:str):
+def AnimateGrid(grids:dict[float, Grid],
+                scale:float,
+                figName:str,
+                int_type:str = None):
     grid_list:list[Grid] = list(grids.values())
     fig = plt.figure()
     ax = fig.add_subplot(projection = '3d')
 
+    _title:str = ""
+    t_list = list(grids.keys())
+    if int_type is not None:
+        _title = int_type + " "
+
     def animate(i:int):
-        VisualiseGrid(grid_list[i], fig)
+        VisualiseGrid(grid_list[i],
+                      scale,
+                      title = _title + f"t = {t_list[i]:.2f}",
+                      fig = fig)
 
     ani = FuncAnimation(fig,
                         animate,
@@ -519,21 +534,87 @@ def AnimateGrid(grids:dict[float, Grid], fileName:str):
                         repeat = False)
     ffwriter = FFMpegWriter(fps=60,
                             bitrate=5000)
-    ani.save(fileName,
+    ani.save(figName,
              writer=ffwriter)
     
-def LoadEvo(fileName:str)->tuple[str, list, dict[float, Grid]]:
+    # clean after ourselves
+    fig.clf()
+    
+
+# the sc2 player, yes.
+class Stats:
+    t:float
+    timing:int
+    PE:float
+    KE:float
+    L:npt.NDArray
+    P:npt.NDArray
+
+def LoadEvo(fileName:str)->tuple[str, list[Stats], dict[float, Grid], float]:
     with open(fileName) as file:
         int_name:str = file.readline().strip()
-        step_cnts, step = [float(x) for x in file.readline().split()]
+        step_cnts, step, scale =[IO.LoadFloat(x)
+                                 for x in file.readline().split()]
         step_cnts = int(step_cnts)
 
-        timing_list:list[int] = []
+        stats_list:list[Stats] = []
         grids:dict[float, Grid] = {}
         for i in range(step_cnts):
             t:float = i * step
             grids[t] = IO.LoadGrid(file)
-            timing_list.append(int(file.readline()))
 
-        return int_name, timing_list, grids
+            stats = Stats()
+            params:list = file.readline().split()
+            stats.t = t
+            stats.timing = int(params[0])
+            stats.PE = IO.LoadFloat(params[1])
+            stats.KE = IO.LoadFloat(params[2])
+            stats.L = IO.LoadVec(file)
+            stats.P = IO.LoadVec(file)
 
+            stats_list.append(stats)
+
+        return int_name, stats_list, grids, scale
+
+def AnalyseEvo(folderName:str, figDir:str):
+    file_names:list[str] = [folderName + f for f in os.listdir(folderName)]
+    file_names = sorted([f for f in file_names if os.path.isfile(f)])
+
+    dim:list[str] = ['x', 'y', 'z']
+
+    for file_name in file_names:
+        int_name, stats_list, grids, scale = LoadEvo(file_name)
+        print(int_name)
+        print('Animation')
+        AnimateGrid(grids, scale, f'{figDir}{int_name}_ani.mp4', int_name)
+
+        t_list = [s.t for s in stats_list]
+        E_list = [s.PE + s.KE for s in stats_list]
+        L_list = [s.L for s in stats_list]
+
+        print("Plots")
+        plt.figure(0)
+        plt.plot(t_list, E_list, label = int_name)
+        plt.xlim(min(t_list), max(t_list))
+    
+        for i in range(3):
+            plt.figure(i + 1)
+            plt.plot(t_list, [l[i] for l in L_list], label = int_name)
+            plt.xlim(min(t_list), max(t_list))
+
+    plt.figure(0)
+    plt.title("Total energy against time")
+    plt.xlabel("Time $t$")
+    plt.ylabel("Energy $E$")
+    plt.legend()
+    plt.savefig(f'{figDir}E_t.pdf')
+    plt.clf()
+
+    for i in range(3):
+        plt.figure(i + 1)
+        plt.title(f"Total angular momentum in {dim[i]} against time")
+        plt.xlabel("Time $t$")
+        plt.ylabel(f"Angular momentum $L_{dim[i]}$")
+        plt.legend()
+        plt.savefig(f'{figDir}L_{dim[i]}_t.pdf')
+        plt.clf()

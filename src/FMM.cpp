@@ -52,8 +52,13 @@ void FMM::Interact(Octree* node1, Octree* node2, Grid& grid) const {
                 for (int j = i + 1; j < n1; j++) {
                     Particle& p2 = grid[node1->mSouls[j]];
                     const Vec& force = GetForce(p1, p2);
+                    const double pot = GetPot(p1, p2);
+
                     p1.accel += force / p1.GetMass();
                     p2.accel -= force / p2.GetMass();
+
+                    p1.pot += pot;
+                    p2.pot += pot;
                 }
             } 
         } else {
@@ -63,8 +68,13 @@ void FMM::Interact(Octree* node1, Octree* node2, Grid& grid) const {
                 for (int s2 : node2->mSouls) {
                     Particle& p2 = grid[s2];  
                     const Vec& force = GetForce(p1, p2);
+                    const double pot = GetPot(p1, p2);
+
                     p1.accel += force / p1.GetMass();
                     p2.accel -= force / p2.GetMass();
+
+                    p1.pot += pot;
+                    p2.pot += pot;
                 }
             }
         }

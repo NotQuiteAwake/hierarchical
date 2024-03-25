@@ -35,6 +35,7 @@ void TestTriangle(Interaction const* interaction) {
         {3.0 / 4, sqrt(3) / 4, 0},
         {-3.0 / 4, sqrt(3) / 4, 0}
     };
+    const auto PE_exp = doctest::Approx(-4).epsilon(eps);
     Grid grid;
     grid = MakeTriangleGrid(grid);
     grid = interaction->Calculate(grid);
@@ -44,6 +45,7 @@ void TestTriangle(Interaction const* interaction) {
             CHECK(grid[i].accel[j] ==
                     doctest::Approx(TriangleExp[i][j]).epsilon(eps));
         }
+        CHECK(grid[i].GetPE() == PE_exp);
     }
 }
 
@@ -85,13 +87,15 @@ void TestWellSeparated(
     Grid grid_alt = interaction->Calculate(grid);
 
     CHECK(grid_alt.GetSize() == grid_brute.GetSize());
-
+    
     for (int i = 0; i < grid_alt.GetSize(); i++) {
         // so diagnostic message is more illustrating...
         for (int j = 0; j < 3; j++) {
             CHECK(grid_alt[i].accel[j] ==
                     doctest::Approx(grid_brute[i].accel[j]).epsilon(eps));
         }
+        CHECK(grid_alt[i].pot ==
+                doctest::Approx(grid_brute[i].pot).epsilon(eps));
     }
 }
 

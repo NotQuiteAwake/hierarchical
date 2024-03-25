@@ -24,7 +24,11 @@ TEST_CASE("testing vector class") {
     }
 
     SUBCASE("vector cross product") {
-        CHECK(CrossProduct(v1, v2)[0] == doctest::Approx(-1));
+        Vec res = CrossProduct(v1, v2);
+        doctest::Approx exp[3] = {-1, 2, -1};
+        for (int i = 0; i < Vec::mDim; i++) {
+            CHECK(res[i] == exp[i]);
+        }
     }
 
     SUBCASE("vector assignment") {
@@ -33,8 +37,11 @@ TEST_CASE("testing vector class") {
     }
 
     SUBCASE("vector addition") {
-        Vec v3 = v1 + v2;
-        CHECK(v3[2] == 4);
+        Vec res = v1 + v2;
+        doctest::Approx exp[3] = {2, 3, 4};
+        for (int i = 0; i < Vec::mDim; i++) {
+            CHECK(res[i] == exp[i]);
+        }
     }
 
     SUBCASE("spherical polar theta") {
@@ -47,11 +54,11 @@ TEST_CASE("testing vector class") {
     SUBCASE("spherical polar phi") {
         Vec vec({1, 1, 0});
         CHECK(vec.GetPhi() == doctest::Approx(PI() / 4));
-        vec = Vec({-1, sqrt(1.0 / 3), 1});
+        vec = Vec({-1, std::sqrt(1.0 / 3), 1});
         CHECK(vec.GetPhi() == doctest::Approx(5 * PI() / 6));
-        vec = Vec({-1, -sqrt(1.0 / 3), 1});
+        vec = Vec({-1, -std::sqrt(1.0 / 3), 1});
         CHECK(vec.GetPhi() == doctest::Approx(7 * PI() / 6));
-        vec = Vec({sqrt(3), -1, 3});
+        vec = Vec({std::sqrt(3), -1, 3});
         CHECK(vec.GetPhi() == doctest::Approx(11 * PI() / 6));
     }
 

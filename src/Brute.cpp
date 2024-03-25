@@ -13,9 +13,13 @@ Grid Brute::Calculate(const Grid& g1) const {
         for (int j = i + 1; j < size; j++) {
             const Particle& pj = g1[j];
             Vec force = GetForce(pi, pj); 
+            double pot = GetPot(pi, pj);
             // update acceleration pair-wise
-            g2[i].accel = g2[i].accel + force / g2[i].GetMass();
-            g2[j].accel = g2[j].accel - force / g2[j].GetMass();
+            g2[i].accel += force / g2[i].GetMass();
+            g2[j].accel -= force / g2[j].GetMass();
+
+            g2[i].pot += pot;
+            g2[j].pot += pot;
         }
     }
 

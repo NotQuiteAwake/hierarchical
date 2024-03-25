@@ -15,9 +15,11 @@ class Force {
         // Further require that forces obey Newton III.
         // employ template method pattern.
         Vec GetForce(const Particle& p1, const Particle& p2) const;
+        double GetPot(const Particle& p1, const Particle& p2) const;
 
     protected:
         virtual Vec ForceLaw(const Particle& p1, const Particle& p2) const = 0;
+        virtual double PotLaw(const Particle& p1, const Particle& p2) const = 0;
 
     private:
         bool CheckDistinct(const Particle& p1, const Particle& p2) const;
@@ -26,6 +28,7 @@ class Force {
 class DummyForce : public Force {
     public:
         Vec ForceLaw(const Particle& p1, const Particle& p2) const override;
+        double PotLaw(const Particle& p1, const Particle& p2) const override;
 };
 
 class InvSqForce : public Force {
@@ -36,6 +39,7 @@ class InvSqForce : public Force {
         // defaults to attractive coupling (gravity)
         InvSqForce(double G = -1);
         Vec ForceLaw(const Particle& p1, const Particle& p2) const override;
+        double PotLaw(const Particle& p1, const Particle& p2) const override;
 };
 
 }

@@ -38,9 +38,14 @@ std::vector<Particle>& SetNormalPos(
         double (&sigma)[Vec::mDim],
         std::vector<Particle>& list
         );
-std::vector<Particle>& SetColdStart(
+std::vector<Particle>& SetSphericalPos(
         const Vec& posCentre,
         double R,   // maximum radius
+        std::vector<Particle>& list
+        );
+std::vector<Particle>& SetUniformRotVel(
+        const Vec& posCentre,
+        const Vec& omega,
         std::vector<Particle>& list
         );
 std::vector<Particle>& SetPlummerSphere(
@@ -48,10 +53,10 @@ std::vector<Particle>& SetPlummerSphere(
         double a, // Plummer parameter a
         std::vector<Particle>& list
         );
-std::vector<Particle>& SetDiskPosVel(
+std::vector<Particle>& SetDiskPos(
         const Vec& posCentre,
+        const Vec& axis,
         double r0, // r_0
-        double w0, // omega_0
         std::vector<Particle>& list
         );
 std::vector<Particle>& SetUniformVel(

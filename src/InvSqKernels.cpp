@@ -234,6 +234,7 @@ void InvSqKernels::AddAccel(Particle& par,
     // note psi[1][0] should just be real.
     par.accel += Vec({psi[1][1].real(), psi[1][1].imag(), psi[1][0].real()})
         * mG * par.GetCharge() / par.GetMass();
+    par.pot += mG * par.GetCharge() * psi[0][0].real();
 }
 
 void InvSqKernels::P2M(Octree* leaf) {

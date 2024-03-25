@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import Analysis
 
 def main():
@@ -23,9 +24,7 @@ def main():
 #                               theta_comp_dir + 'error/')
 
     cold_dir = data_dir + 'cold/'
-    int_name, timing_list, grids = Analysis.LoadEvo(cold_dir + 'bh.dump')
-    Analysis.AnimateGrid(grids, cold_dir + 'ani.mp4')
-
+    #Analysis.AnalyseEvo(cold_dir, cold_dir + 'analysis/')
 
 if __name__ == '__main__':
     main()

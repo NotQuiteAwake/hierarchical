@@ -51,6 +51,55 @@ void Grid::AddParticle(const Particle& par) {
     }
 }
 
+double Grid::GetPE() const {
+    double PE = 0;
+    for (const Particle& par : mParticles) {
+        PE += par.GetPE();
+    }
+    return PE / 2; // we've double counted
+}
+
+double Grid::GetKE() const {
+    double KE = 0;
+    for (const Particle& par : mParticles) {
+        KE += par.GetKE();
+    }
+    return KE;
+}
+
+double Grid::GetE() const {
+    return GetKE() + GetPE();
+}
+
+Vec Grid::GetCOM() const {
+    Vec com({0, 0, 0});
+    double mass = 0; 
+    for (const Particle& par : mParticles) {
+        const double par_mass = par.GetMass();
+        com += par.pos * par_mass;
+        mass += par_mass;
+    }
+
+    assert(mass > 0);
+    return com / mass;
+}
+
+Vec Grid::GetL(const Vec centre) const {
+    Vec L({0, 0, 0});
+    for (const Particle& par : mParticles) {
+        L += CrossProduct(par.pos - centre, par.vel) * par.GetMass();
+    }
+    return L;
+}
+
+Vec Grid::GetP() const {
+    Vec P({0, 0, 0});
+    for (const Particle& par : mParticles) {
+        P += par.GetP();
+    }
+    return P;
+}
+
 void Grid::SetOctant(const Octant& octant) {
     assert(!mOctant.IsInitialised());
     mOctant = octant;

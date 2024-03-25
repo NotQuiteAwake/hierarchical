@@ -18,4 +18,17 @@ double Particle::GetCharge() const {
     return mCharge;
 }
 
+double Particle::GetPE() const {
+    return pot;
+}
+
+double Particle::GetKE() const {
+    double speed = vel.GetNorm();
+    return mMass * speed * speed / 2;
+}
+
+Vec Particle::GetP() const {
+    return vel * mMass;
+}
+
 }

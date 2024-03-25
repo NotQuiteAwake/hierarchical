@@ -24,7 +24,7 @@ def LoadOctant(file):
 
     return octant
         
-def LoadVec(file) -> npt.ArrayLike:
+def LoadVec(file) -> npt.NDArray:
     return np.array([LoadFloat(x) for x in file.readline().split()])
 
 def LoadParticle(file) -> Particle:
