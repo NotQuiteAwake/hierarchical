@@ -27,6 +27,7 @@ class Grid {
         Particle operator[](int index) const;
 
         void AddParticle(const Particle& par);
+        void AddParticles(const std::vector<Particle>& par_list);
         double GetPE() const;
         double GetKE() const;
         double GetE() const;

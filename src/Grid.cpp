@@ -51,6 +51,12 @@ void Grid::AddParticle(const Particle& par) {
     }
 }
 
+void Grid::AddParticles(const std::vector<Particle>& par_list) {
+    for (const Particle& par : par_list) {
+        AddParticle(par);
+    }
+}
+
 double Grid::GetPE() const {
     double PE = 0;
     for (const Particle& par : mParticles) {

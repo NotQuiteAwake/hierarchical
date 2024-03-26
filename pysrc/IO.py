@@ -1,8 +1,15 @@
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
+import os
 from Grid import Grid
 from Particle import Particle
+
+def MakeDir(dir:str):
+    try:
+        os.mkdir(dir)
+    except FileExistsError:
+        pass
 
 def LoadFloat(floatStr:str) -> float:
     num = 0
@@ -11,6 +18,7 @@ def LoadFloat(floatStr:str) -> float:
     except ValueError:
         num = float.fromhex(floatStr)
     return num
+
 
 def LoadOctant(file):
     octant = np.zeros([3, 2])
@@ -24,8 +32,10 @@ def LoadOctant(file):
 
     return octant
         
+
 def LoadVec(file) -> npt.NDArray:
     return np.array([LoadFloat(x) for x in file.readline().split()])
+
 
 def LoadParticle(file) -> Particle:
     mass, charge = [LoadFloat(x) for x in file.readline().split()]
@@ -34,6 +44,7 @@ def LoadParticle(file) -> Particle:
     par.vel = LoadVec(file)
     par.accel = LoadVec(file)
     return par
+
 
 def LoadGrid(file) -> Grid:
     grid = Grid()
@@ -56,76 +67,32 @@ def LoadGrid(file) -> Grid:
 
     return grid
 
-def LoadGrids(fileName:str, repeats:int) -> list[Grid]:
+
+def LoadGrids(fileName:str) -> list[Grid]:
     grids:list = []
     with open(fileName) as file:
+        repeats:int = int(file.readline())
         for i in range(repeats):
             grids.append(LoadGrid(file))
 
-    # TODO: check different repeats loaded
     return grids
 
-def LoadTimingResults(fileName:str) -> dict[str, dict[int, list[int]]]:
+
+def LoadParamResults(fileName:str) -> dict:
     with open(fileName) as file:
-        line:str = file.readline()
-        int_types = int(line)
-        int_results:dict = {}
-
-        for i in range(int_types):
-            line = file.readline()
-            int_name, runs = line.split()
-            runs = int(runs) + 1
-
-            scaling:dict = {}
-
-            for j in range(runs):
-                line = file.readline()
-                n, repeats = [int(x) for x in line.split()] 
-                
-                line = file.readline()
-                timed = [int(x) for x in line.split()]
-                    
-                scaling[n] = timed
-            
-            int_results[int_name] = scaling
-
-        return int_results
-
-def LoadExpansionOrderResults(fileName:str) -> tuple[int, dict]:
-    with open(fileName) as file:
-        line:str = file.readline()
-        num_p, n = [int(x) for x in line.split()]
-        
+        num_params = int(file.readline())
         res:dict = {}
 
-        for i in range(num_p):
-            p, int_types = [int(x) for x in file.readline().split()]
-            res[p] = {}
-
-            for j in range(int_types):
-                int_name, repeat = file.readline().split()
-                repeat = int(repeat)
-
-                res[p][int_name] = [int(x) for x in file.readline().split()]
-    
-    return n, res
-
-def LoadThetaResults(fileName:str) -> tuple[float, dict]:
-    with open(fileName) as file:
-        line:str = file.readline()
-        num_theta, n = [int(x) for x in line.split()]
-        
-        res:dict = {}
-
-        for i in range(num_theta):
-            theta, int_types = [LoadFloat(x) for x in file.readline().split()]
+        for i in range(num_params):
+            param, int_types = [LoadFloat(x) for x in file.readline().split()]
             int_types = int(int_types)
-            res[theta] = {}
+            res[param] = {}
 
             for j in range(int_types):
-                int_name, repeat = file.readline().split()
+                int_type, repeat = file.readline().split()
                 repeat = int(repeat)
 
-                res[theta][int_name] = [int(x) for x in file.readline().split()]
+                res[param][int_type] = [int(x) for x in file.readline().split()]
     
-    return n, res
+    return res
+

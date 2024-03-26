@@ -40,17 +40,56 @@ bool CheckFile(const std::string& fileName, bool expect) {
     return exists; 
 }
 
-int TimeUniformRun(Interaction const* interaction,
+FileParams::FileParams(std::string runDir): runDir(runDir) {};
+
+std::string FileParams::GetRunDirName() const {
+    return dataDir + '/' + runDir;
+}
+
+std::string FileParams::GetCompName() const {
+    return GetRunDirName() + '/' + comp;
+}
+
+std::string FileParams::GetDumpName() const {
+    return GetRunDirName() + '/' + dump;
+}
+
+bool CompStreamSetup(std::ofstream& stream,
+                     FileParams fileParams
+        ) {
+    const std::string comp_dir_name = fileParams.GetRunDirName();
+    const std::string comp_file_name = fileParams.GetCompName();
+    const std::string dump_dir_name = fileParams.GetDumpName();
+
+     // need to find correct directory
+    if (!CheckFile(FileParams::dataDir, true)) { return false; }
+
+    IO::MakeDir(comp_dir_name);
+
+    // do not overwrite
+    if (CheckFile(dump_dir_name, false)) { return false; }
+    if (CheckFile(comp_file_name, false)) { return false; }
+
+    // file IO
+    IO::MakeDir(dump_dir_name);
+    stream.open(comp_file_name);
+    assert(stream.good());
+    IO::SetHexfloat(stream);
+
+    return true;
+}
+
+int Benchmarker::TimeUniformRun(Interaction const* interaction,
                    int n,
                    int seed,
-                   const std::string& fileName // dump destination
-                   ) {
+                   std::ofstream& stream
+                   ) const {
     namespace time = std::chrono;
 
     // prepare grid
     dist::SetSeed(seed);
     Vec centre({0, 0, 0});
-    double spread[Vec::mDim]{10, 10, 10};
+    double spread[Vec::mDim]{genParams.scale, genParams.scale, genParams.scale};
     std::vector<Particle> particles = dist::MakeUniformMass(10, 5, n);
     particles = dist::SetUniformPos(centre, spread, particles);
     Grid grid = particles;
@@ -62,427 +101,122 @@ int TimeUniformRun(Interaction const* interaction,
     auto duration =
         time::duration_cast<std::chrono::microseconds>(end - start);
 
-    // save results for further analysis
-    std::ofstream stream;
-    stream.open(fileName, std::ios::app);
-    assert(stream.good());
-    IO::SetHexfloat(stream);
-
     IO::DumpGrid(new_grid, stream);
 
     return duration.count();
 }
 
+Benchmarker::Benchmarker(GenParams genParams,
+                         FileParams fileParams,
+                         std::ofstream& stream):
+        stream(stream),
+        genParams(genParams),
+        fileParams(fileParams) {
+    
+    force.reset(new InvSqForce(genParams.G));
+    kernels.reset(new InvSqKernels(genParams.p, genParams.G));
+    integrator.reset(new LeapFrog(genParams.step));
+
+    interactions[genParams.brute] =
+        std::make_unique<Brute>(force.get());
+    interactions[genParams.bh] =
+        std::make_unique<BarnesHut>(genParams.p,
+                genParams.theta,
+                kernels.get(),
+                force.get());
+    interactions[genParams.fmm] =
+        std::make_unique<FMM>(genParams.p,
+                genParams.theta,
+                genParams.maxPerCell,
+                genParams.maxPairwiseLimit,
+                kernels.get(),
+                force.get());
 }
+        
 
-void TimeComplexity() {
-    std::clog << "Begin TimeComplexity." << std::endl;
-    std::clog << "Make sure the governor is set to performance." << std::endl;
+void Benchmarker::Run(double param, bool skipBrute) const {
+    stream << param << " " << (genParams.intTypes - skipBrute) << std::endl;
+    for(int i = 0; i < genParams.intTypes; i++) {
+        const std::string& int_name = genParams.intNames[i];
 
-    // need to find correct directory
-    if (!CheckFile(dataDir, true)) { return; }
+        if (skipBrute && i == genParams.brute) { continue; }
 
-    const std::string comp_dir_name = dataDir + "complexity/";
-    const std::string comp_file_name = comp_dir_name + "complexity.out";
-    const std::string dump_dir_name = comp_dir_name + "dump/";
-    IO::MakeDir(comp_dir_name);
+        // timers for repeats
+        long long time_sum = 0;
 
-    // do not overwrite
-    if (CheckFile(dump_dir_name, false)) { return; }
-    if (CheckFile(comp_file_name, false)) { return; }
+        std::clog << int_name << " param " << param << std::endl;
+        stream << int_name << " " << genParams.repeats << std::endl;
 
-    // file IO
-    IO::MakeDir(dump_dir_name);
-    std::ofstream stream;
-    stream.open(comp_file_name);
-    assert(stream.good());
-    IO::SetHexfloat(stream);
+        std::stringstream dump_file_name_ss;
+        dump_file_name_ss << fileParams.GetDumpName() << int_name << "_"
+            << genParams.n << "_" << param << ".dump";
+        std::ofstream dump_stream(dump_file_name_ss.str());
+        assert(dump_stream.good());
+        dump_stream << genParams.repeats << std::endl;
+        IO::SetHexfloat(dump_stream);
 
-    // parameters
-    const int p = 3;
-    const double theta = 0.5;
-    const int maxPerCell = 5;
-    const int maxPairwiseLimit = 3;
-    const double G = -1;
-    const auto invsq_force = std::make_unique<InvSqForce>(G);
-    auto invsq_ker = std::make_unique<InvSqKernels>(p, G);
-
-    // interaction specific settings
-    const int int_types = 3;
-    std::unique_ptr<Interaction> interactions[int_types] = {
-        std::make_unique<Brute>(invsq_force.get()),
-        std::make_unique<BarnesHut>(p,
-                                    theta,
-                                    invsq_ker.get(),
-                                    invsq_force.get()),
-        std::make_unique<FMM>(p,
-                              theta,
-                              maxPerCell,
-                              maxPairwiseLimit,
-                              invsq_ker.get(),
-                              invsq_force.get())
-    };
-    const std::string int_names[int_types]{"brute", "bh", "fmm"};
-    const int min_n = 10;
-    const int int_max_n[int_types]{int(1e5), int(1e5), int(1e5)};
-
-    // iteration settings
-    const int runs_per_fac_10 = 8; 
-    const double factor = std::pow(10, 1.0 / runs_per_fac_10);
-
-    // repeats for each iteration
-    const int repeats = 10;
-
-    // log to file
-    stream << int_types << std::endl;
-
-    for(int i = 0; i < int_types; i++) {
-        // prepare for iterations
-        int max_n = int_max_n[i];
-        double dn = min_n; // "double" n
-        int runs = std::log(double(max_n) / min_n) / std::log(factor);
-
-        std::clog << "Time measurements for " + int_names[i] << std::endl;
-
-        stream << int_names[i] << " " << runs << std::endl;
-
-        for (int j = 0; j <= runs; j++) {
-            int n = int(dn);
-            std::clog << "Run " << j + 1 << " of " << runs + 1 << ", n = " << n
+        for (int j = 0; j < genParams.repeats; j++) {
+            std::clog << "Repeat " << j + 1 << " of " << genParams.repeats
                 << std::endl;
 
-            // timers for repeats
-            long long time_sum = 0;
-            
-            stream << n << " " << repeats << std::endl;
+            int repeat_time = TimeUniformRun(interactions[i].get(),
+                    genParams.n,
+                    j,
+                    dump_stream);
+            time_sum += repeat_time;
 
-            for (int k = 0; k < repeats; k++) {
-                std::clog << "Repeat " << k + 1 << " of " << repeats
-                    << std::endl;
-                
-                std::stringstream dump_file_name_ss;
-                dump_file_name_ss << dump_dir_name << int_names[i] << "_"
-                    << n << ".dump";
-                int repeat_time = TimeUniformRun(interactions[i].get(),
-                                                 n,
-                                                 k,
-                                                 dump_file_name_ss.str());
-                time_sum += repeat_time;
-                std::clog << "Timed: " << repeat_time << " us" << std::endl;
-
-                stream << repeat_time << " ";
-            }
-
-            std::clog << "Repeats finished. Average time: " << 
-                (double(time_sum) / repeats) << std::endl;
-
-            // measure next n
-            dn *= factor;
-
-            stream << std::endl;
+            std::clog << "Timed: " << repeat_time << " us" << std::endl;
+            stream << repeat_time << " ";
         }
-        
-        // measure next interaction type
-    }
-
-}
-
-void ExpansionOrderComplexity() {
-    std::clog << "Begin ExpansionOrderComplexity." << std::endl;
-    std::clog << "Make sure the governor is set to performance." << std::endl;
-
-    // need to find correct directory
-    if (!CheckFile(dataDir, true)) { return; }
-
-    const std::string comp_dir_name = dataDir + "p-complexity/";
-    const std::string comp_file_name = comp_dir_name + "complexity.out";
-    const std::string dump_dir_name = comp_dir_name + "dump/";
-    IO::MakeDir(comp_dir_name);
-
-    // do not overwrite
-    if (CheckFile(dump_dir_name, false)) { return; }
-    if (CheckFile(comp_file_name, false)) { return; }
-
-    // file IO
-    IO::MakeDir(dump_dir_name);
-    std::ofstream stream;
-    stream.open(comp_file_name);
-    assert(stream.good());
-    IO::SetHexfloat(stream);
-
-    // parameters
-    const int n = 1000;
-    const int p_min = 1;
-    const int p_max = 10;
-    const double theta = 0.5;
-    const int maxPerCell = 5;
-    const int maxPairwiseLimit = 3;
-    const double G = -1;
-
-    // repeats for each iteration
-    const int repeats = 10;
-
-    // interaction specific settings
-    const int int_types = 3;
-    const std::string int_names[int_types]{"brute", "bh", "fmm"};
-
-    // log to file
-    stream << (p_max - p_min + 1) << " " << n << std::endl;
-
-    for (int p = p_min; p <= p_max; p++) {
-        assert(p > 0);
-
-        // Instantiate Interaction for the particular p
-        // must do it for each p since by design we don't expect p to change
-        // "half-way" in a calculation so it's meant to be immutable
-        const auto invsq_force = std::make_unique<InvSqForce>(G);
-        auto invsq_ker = std::make_unique<InvSqKernels>(p, G);
-
-        std::unique_ptr<Interaction> interactions[int_types] = {
-            std::make_unique<Brute>(invsq_force.get()),
-            std::make_unique<BarnesHut>(p,
-                    theta,
-                    invsq_ker.get(),
-                    invsq_force.get()),
-            std::make_unique<FMM>(p,
-                    theta,
-                    maxPerCell,
-                    maxPairwiseLimit,
-                    invsq_ker.get(),
-                    invsq_force.get())
-        };
-
-        // for p = p_min, calculate all three types: 3
-        // for p != p_min, don't run brute-force again: 2
-        stream << p << " " << (int_types - 1 + (p == p_min)) << std::endl;
-
-        for(int i = 0; i < int_types; i++) {
-            std::clog << int_names[i] << " p = " << p
-                << ", n = " << n << std::endl;
-
-            if (int_names[i] == "brute" && p != p_min) {
-                // simply no point in repeating the same calculation
-                continue;
-            }
-
-            // timers for repeats
-            long long time_sum = 0;
-
-            stream << int_names[i] << " " << repeats << std::endl;
-
-            for (int k = 0; k < repeats; k++) {
-                std::clog << "Repeat " << k + 1 << " of " << repeats
-                    << std::endl;
-
-                std::stringstream dump_file_name_ss;
-                dump_file_name_ss << dump_dir_name << int_names[i] << "_"
-                    << n << "_" << p << ".dump";
-                int repeat_time = TimeUniformRun(interactions[i].get(),
-                        n,
-                        k,
-                        dump_file_name_ss.str());
-                time_sum += repeat_time;
-                std::clog << "Timed: " << repeat_time << " us" << std::endl;
-
-                stream << repeat_time << " ";
-            }
-
-            std::clog << "Repeats finished. Average time: " << 
-                (double(time_sum) / repeats) << std::endl;
-
-            stream << std::endl;
-        }
-
-        // measure next interaction type
+        std::clog << "Repeats finished. Average time: " << 
+            (double(time_sum) / genParams.repeats) << std::endl;
+        stream << std::endl;
     }
 }
 
-void ThetaComplexity() {
-    std::clog << "Begin ThetaComplexity." << std::endl;
-    std::clog << "Make sure the governor is set to performance." << std::endl;
+void Benchmarker::Evo(const Grid& grid) const {
+    if (!CheckFile(FileParams::dataDir, true)) { return; }
+    IO::MakeDir(fileParams.GetRunDirName());
+    if (CheckFile(fileParams.GetDumpName(), false)) { return; }
+    IO::MakeDir(fileParams.GetDumpName());
 
-    // need to find correct directory
-    if (!CheckFile(dataDir, true)) { return; }
-
-    const std::string comp_dir_name = dataDir + "theta-complexity/";
-    const std::string comp_file_name = comp_dir_name + "complexity.out";
-    const std::string dump_dir_name = comp_dir_name + "dump/";
-    IO::MakeDir(comp_dir_name);
-
-    // do not overwrite
-    if (CheckFile(dump_dir_name, false)) { return; }
-    if (CheckFile(comp_file_name, false)) { return; }
-
-    // file IO
-    IO::MakeDir(dump_dir_name);
-    std::ofstream stream;
-    stream.open(comp_file_name);
-    assert(stream.good());
-    IO::SetHexfloat(stream);
-
-    // parameters
-    const int n = 4000;
-    const int p = 3;
-    const int maxPerCell = 5;
-    const int maxPairwiseLimit = 3;
-    const double G = -1;
-
-    const int num_theta = 10;
-    const double theta_min = 0.1;
-    const double theta_max = 1;
-    const double del_theta = (theta_max - theta_min) / (num_theta - 1);
-
-    // repeats for each iteration
-    const int repeats = 10;
-
-    // interaction specific settings
-    const int int_types = 3;
-    const std::string int_names[int_types]{"brute", "bh", "fmm"};
-
-    // log to file
-    stream << num_theta << " " << n << std::endl;
-
-    for (int i = 0; i < num_theta; i++) {
-        double theta = theta_min + i * del_theta;
-
-        assert(theta > 0);
-
-        // Instantiate Interaction for the particular p
-        // must do it for each p since by design we don't expect p to change
-        // "half-way" in a calculation so it's meant to be immutable
-        const auto invsq_force = std::make_unique<InvSqForce>(G);
-        auto invsq_ker = std::make_unique<InvSqKernels>(p, G);
-
-        std::unique_ptr<Interaction> interactions[int_types] = {
-            std::make_unique<Brute>(invsq_force.get()),
-            std::make_unique<BarnesHut>(p,
-                    theta,
-                    invsq_ker.get(),
-                    invsq_force.get()),
-            std::make_unique<FMM>(p,
-                    theta,
-                    maxPerCell,
-                    maxPairwiseLimit,
-                    invsq_ker.get(),
-                    invsq_force.get())
-        };
-
-        // for i == 0, calculate all three types: 3
-        // for i != 0, don't run brute force again: 2
-        stream << theta << " " << (int_types - 1 + (i == 0)) << std::endl;
-
-        for(int j = 0; j < int_types; j++) {
-
-            if (int_names[j] == "brute" && i != 0) {
-                // simply no point in repeating the same calculation
-                continue;
-            }
-
-            std::clog << int_names[j] << " theta " << theta << std::endl;
-
-            // timers for repeats
-            long long time_sum = 0;
-
-            stream << int_names[j] << " " << repeats << std::endl;
-
-            for (int k = 0; k < repeats; k++) {
-                std::clog << "Repeat " << k + 1 << " of " << repeats
-                    << std::endl;
-
-                std::stringstream dump_file_name_ss;
-                dump_file_name_ss << dump_dir_name << int_names[j] << "_"
-                    << n << "_" << theta << ".dump";
-                int repeat_time = TimeUniformRun(interactions[j].get(),
-                        n,
-                        k,
-                        dump_file_name_ss.str());
-                time_sum += repeat_time;
-                std::clog << "Timed: " << repeat_time << " us" << std::endl;
-
-                stream << repeat_time << " ";
-            }
-
-            std::clog << "Repeats finished. Average time: " << 
-                (double(time_sum) / repeats) << std::endl;
-
-            stream << std::endl;
-        }
-
-        // measure next interaction type
-    }
-}
-
-namespace {
-void SimulationHelper(const std::string dump_dir,
-                      const Grid& grid,
-                      const double scale
-                      ) {
-    const int p = 3;
-    const double G = -1;
-    const double theta = 0.5;
-    const int maxPerCell = 5;
-    const int maxPairwiseLimit = 3; 
-
-    const auto invsq_force = std::make_unique<InvSqForce>(G);
-    auto invsq_ker = std::make_unique<InvSqKernels>(p, G);
-
-    const int int_types = 3;
-    std::unique_ptr<Interaction> interactions[int_types] = {
-        std::make_unique<Brute>(invsq_force.get()),
-        std::make_unique<BarnesHut>(p,
-                theta,
-                invsq_ker.get(),
-                invsq_force.get()),
-        std::make_unique<FMM>(p,
-                theta,
-                maxPerCell,
-                maxPairwiseLimit,
-                invsq_ker.get(),
-                invsq_force.get())
-    };
-    const std::string int_names[int_types]{"brute", "bh", "fmm"};
-
-    const double step = 0.01;
-    const double evo_time = 10;
-    const int steps_cnt = evo_time / step;
-    const auto integrator = std::make_unique<LeapFrog>(step);
+    const int steps_cnt = genParams.evo_time / genParams.step;
    
     namespace time = std::chrono;
     std::clog << std::fixed << std::setprecision(2);
 
-    for (int i = 0; i < int_types; i++) {
-        const std::string& int_name = int_names[i];
-
-        std::clog << int_name << std::endl;
+    for (int i = 0; i < genParams.intTypes; i++) {
+        const std::string& int_name = genParams.intNames[i];
 
         Grid sim_grid = grid;
         Interaction* const interaction = interactions[i].get();
         
-        const std::string file_name = dump_dir + int_names[i] + ".dump";
-        if (CheckFile(file_name, false)) {
-            return;
-        }
-        std::ofstream stream;
-        stream.open(file_name);
+        const std::string file_name = fileParams.GetDumpName() 
+            + genParams.intNames[i] + ".dump";
+        if (CheckFile(file_name, false)) { return; }
+        std::ofstream stream(file_name);
         assert(stream.good());
         IO::SetHexfloat(stream);
 
+        std::clog << int_name << std::endl;
         stream << int_name << std::endl;
-        stream << steps_cnt << " " << step << " " << scale << std::endl;
+        stream << steps_cnt << " " << genParams.step <<
+            " " << genParams.scale << std::endl;
 
         sim_grid = interaction->Calculate(grid);
         for (int j = 0; j < steps_cnt; j++) {
-            const double t = j * step;
+            const double t = j * genParams.step;
             if (j > 0 && j % 10 == 0) std::clog << std::endl;
             std::clog << t << " ";
-            
             IO::DumpGrid(sim_grid, stream);
+
             auto start = time::high_resolution_clock::now();
             sim_grid = integrator->Evolve(sim_grid);
             sim_grid = interaction->Calculate(sim_grid);
             auto end = time::high_resolution_clock::now();
             auto duration =
                 time::duration_cast<std::chrono::microseconds>(end - start);
+
             stream << duration.count() << " " << sim_grid.GetPE() << " "
                    << sim_grid.GetKE() << std::endl;
             IO::DumpVec(sim_grid.GetL(), stream);
@@ -492,32 +226,126 @@ void SimulationHelper(const std::string dump_dir,
         std::clog << std::endl;    
     }
 }
+
+} // namespace
+
+void NComplexity() {
+    std::clog << "Begin NComplexity." << std::endl;
+    std::clog << "Make sure the governor is set to performance." << std::endl;
+
+    FileParams fileParams("n-complexity/");
+    std::ofstream stream;
+    if (!CompStreamSetup(stream, fileParams)) { return; }
+
+    const int min_n = 10;
+    const int max_n = int(1e5 + 0.5);
+    const int runs_per_fac_10 = 8; 
+    const double factor = std::pow(10, 1.0 / runs_per_fac_10);
+    const int num_n = std::log(double(max_n) / min_n) / std::log(factor) + 1;
+
+    double n_double = min_n;
+
+    stream << num_n << std::endl;
+
+    for (int i = 0; i < num_n; i++) {
+        int n = int(n_double + 0.5);
+        
+        GenParams params;
+        params.n = n;
+        Benchmarker bm(params, fileParams, stream);
+        
+        // don't skipBrute, we need that in measurements as well
+        bm.Run(n, false);
+
+        n_double *= factor;
+    }
+}
+
+void PComplexity() {
+    std::clog << "Begin PComplexity." << std::endl;
+    std::clog << "Make sure the governor is set to performance." << std::endl;
+    
+    FileParams fileParams("p-complexity/");
+    std::ofstream stream;
+    if (!CompStreamSetup(stream, fileParams)) { return; }
+
+    const int p_min = 1;
+    const int p_max = 10;
+    const int num_p = p_max - p_min + 1;
+     
+    // TODO: REMOVED N from output
+    stream << num_p << std::endl;
+
+    for (int i = 0; i < num_p; i++) {
+        const int p = p_min + i;
+        assert(p > 0);
+        
+        GenParams params;
+        params.p = p;
+        Benchmarker bm(params, fileParams, stream);
+
+        bm.Run(p, i != 0);
+    }
+}
+
+void ThetaComplexity() {
+    std::clog << "Begin ThetaComplexity." << std::endl;
+    std::clog << "Make sure the governor is set to performance." << std::endl;
+
+    FileParams fileParams("theta-complexity/");
+    std::ofstream stream;
+    if (!CompStreamSetup(stream, fileParams)) { return; }
+
+    const int n = 4000;
+    const int num_theta = 10;
+    const double theta_min = 0.1;
+    const double theta_max = 1;
+    const double del_theta = (theta_max - theta_min) / (num_theta - 1);
+
+    // log to file
+    stream << num_theta << std::endl;
+
+    for (int i = 0; i < num_theta; i++) {
+        double theta = theta_min + i * del_theta;
+        assert(theta > 0);
+    
+        GenParams params;
+        params.n = n;
+        params.theta = theta;
+        Benchmarker bm(params, fileParams, stream);
+
+        bm.Run(theta, i != 0);
+    }
 }
 
 void ColdStartSim() {
-    const std::string dump_dir = "./data/cold/";
+    GenParams genParams;
+    genParams.scale = 20;
+    FileParams fileParams("cold/");
+    Benchmarker bm(genParams, fileParams);
+
     const double seed = 1;
     dist::SetSeed(seed);
-
-    const double scale = 20;
 
     const int n = 1000;
     Grid grid(n);
     const double mean_mass = 10;
     const double sigma_mass = 1;
     const Vec centre({0, 0, 0});
-    const double R = scale / 2;
+    const double R = genParams.scale / 2;
     auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
     par_list = dist::SetSphericalPos(centre, 0, R, par_list);
-    for (const Particle& par : par_list) {
-        grid.AddParticle(par);
-    }
-    
-    SimulationHelper(dump_dir, grid, scale);
+   
+    grid.AddParticles(par_list);
+    bm.Evo(grid);
 }
 
 void ThinDiskSim() {
-    const std::string dump_dir = "./data/disk/";
+    GenParams genParams;
+    genParams.scale = 20;
+    FileParams fileParams("disk/");
+    Benchmarker bm(genParams, fileParams);
+
     const double seed = 10;
     dist::SetSeed(seed);
 
@@ -529,8 +357,7 @@ void ThinDiskSim() {
 
     const Vec centre({0, 0, 0});
     const Vec axis({0, 0, 1});
-    const double scale = 20;
-    const double R = scale;
+    const double R = genParams.scale;
     const double z_spread = 0.5;
 
     auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
@@ -551,15 +378,16 @@ void ThinDiskSim() {
         par_list = dist::SetUniformRotVel(centre, omega, par_list);
     }
 
-    for (const Particle& par : par_list) {
-        grid.AddParticle(par);
-    }
-    
-    SimulationHelper(dump_dir, grid, scale);
+    grid.AddParticles(par_list);
+    bm.Evo(grid);
 }
 
 void GalaxySim() {
-    const std::string dump_dir = "./data/galaxy/";
+    GenParams genParams;
+    genParams.scale = 50;
+    FileParams fileParams("galaxy/");
+    Benchmarker bm(genParams, fileParams);
+
     const double seed = 10;
     dist::SetSeed(seed);
 
@@ -575,7 +403,7 @@ void GalaxySim() {
     Particle smbh(smbh_mass, smbh_mass);
     smbh.pos = centre;
 
-    const double scale = 50;
+    const double scale = genParams.scale;
     const double r0 = scale / 10;
     const double r1 = scale;
     const double z_spread = 5;
@@ -589,16 +417,17 @@ void GalaxySim() {
 
     par_list.push_back(smbh);
 
-    for (const Particle& par : par_list) {
-        grid.AddParticle(par);
-    }
-    
-    SimulationHelper(dump_dir, grid, scale);
+    grid.AddParticles(par_list);
+    bm.Evo(grid);
 }
 
 void TwoGalaxiesSim() {
-    const std::string dump_dir = "./data/two-galaxies/";
-    const double seed = 2333; // 20
+    GenParams genParams;
+    genParams.scale = 75;
+    FileParams fileParams("two-galaxies/");
+    Benchmarker bm(genParams, fileParams);
+
+    const double seed = 2333;
     dist::SetSeed(seed);
 
     const int n = 1000;
@@ -608,8 +437,8 @@ void TwoGalaxiesSim() {
     const double sigma_mass = 7;
     const double smbh_mass = 5 * mean_mass * n;
 
-    const double scale = 75;
-    const double r1 = scale / 2; // 1.5
+    const double scale = genParams.scale;
+    const double r1 = scale / 2;
     const double r0 = r1 / 7;
     const double z_spread = r1 / 10;
     const Vec centres[2] = {Vec({-scale / 2.5, 0, 0}), Vec({scale / 2.5, 0, 0})};
@@ -635,13 +464,11 @@ void TwoGalaxiesSim() {
         const Vec boost = Vec({0, 1, 0}) * (i ? 1 : -1)
                           * std::sqrt(G * smbh_mass / (dist_centres * 2));
         par_list = dist::AddUniformVel(boost, par_list);
-
-        for (const Particle& par : par_list) {
-            grid.AddParticle(par);
-        }
+        
+        grid.AddParticles(par_list);
     }
 
-    SimulationHelper(dump_dir, grid, scale);
+    bm.Evo(grid);
 }
 
 }
