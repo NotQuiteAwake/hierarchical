@@ -1,0 +1,23 @@
+digraph "callgraph" {
+  F5c73afe55a18 [label="sim::Kernels::CalculateM(sim::...\n20 608 138"];
+  F5c73afe562c8 [label="sim::InvSqKernels::M2M(sim::Oc...\n17 631 328"];
+  F5c73afe590f8 [label="sim::FMM::Interact(sim::Octree...\n233 969 764"];
+  F5c73afe5ba38 [label="sim::FMM::Interact(sim::Octree...\n233 969 259"];
+  F5c73afe5ca68 [label="sim::Kernels::M2L(sim::Octree ...\n200 991 609"];
+  F5c73afe644d8 [label="sim::FMM::Calculate(sim::Grid ...\n279 988 354"];
+  F5c73afe68148 [label="sim::InvSqKernels::M2X(sim::Oc...\n178 417 029"];
+  F5c73afe6ce98 [label="sim::FMM::EvaluateAccel(sim::O...\n19 484 368"];
+  F5c73afe6e258 [label="sim::InvSqKernels::L2X(sim::Oc...\n15 438 492"];
+  F5c73afe751f8 [label="sim::FMM::EvaluateAccel(sim::O...\n19 396 191"];
+  F5c73afe55a18 -> F5c73afe562c8 [weight=2,label="17 631 328 (572x)"];
+  F5c73afe590f8 -> F5c73afe5ba38 [weight=2,label="233 969 259 (36x)"];
+  F5c73afe5ba38 -> F5c73afe5ba38 [weight=3,label="1 184 976 987 (108 824x)"];
+  F5c73afe5ba38 -> F5c73afe5ca68 [weight=2,label="200 991 609 (12 390x)"];
+  F5c73afe5ca68 -> F5c73afe68148 [weight=2,label="178 417 029 (12 390x)"];
+  F5c73afe644d8 -> F5c73afe55a18 [weight=2,label="20 608 138 (1x)"];
+  F5c73afe644d8 -> F5c73afe590f8 [weight=2,label="233 969 764 (1x)"];
+  F5c73afe644d8 -> F5c73afe6ce98 [weight=2,label="19 484 368 (1x)"];
+  F5c73afe6ce98 -> F5c73afe751f8 [weight=2,label="19 396 191 (8x)"];
+  F5c73afe751f8 -> F5c73afe6e258 [weight=2,label="15 438 492 (1 598x)"];
+  F5c73afe751f8 -> F5c73afe751f8 [weight=2,label="48 266 040 (598x)"];
+}

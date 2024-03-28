@@ -103,10 +103,11 @@ def AnalyseN(fileName:str, figDir:str):
         plt.title('Average time against number of masses')
         plt.legend()
         plt.xlim(0, n_max)
+        plt.ylim(0)
         # plt.ylim(0, y_max * 1.1)
         plt.xlabel('Number of masses $N$')
         plt.ylabel('Average computation time $t / \\mu s$')
-        plt.savefig(figDir + 'time_mass.pdf')
+        plt.savefig(figDir + 'time_n.pdf')
         plt.clf()
 
         plt.figure(1)
@@ -117,7 +118,7 @@ def AnalyseN(fileName:str, figDir:str):
         plt.xlabel('$\\ln{N}$')
         plt.ylabel('$\\ln{t}$')
         # plt.show()
-        plt.savefig(figDir + 'time_mass_lnln.pdf')
+        plt.savefig(figDir + 'time_n_lnln.pdf')
 
     AnalyseParam(fileName, figDir, loopPlt, finalPlt)
 
@@ -162,11 +163,14 @@ def AnalyseTheta(fileName:str, figDir:str):
                      marker = 'x')
 
     def finalPlt(theta_min, theta_max):
-        plt.title('Computation time against opening angle')
-        plt.xlabel('Opening angle $\\theta$')
-        plt.ylabel('Time / $\\mu s$')
+        plt.title('Computation time against opening angle $\\theta$')
+        plt.xlabel('$\\theta$')
+        plt.ylabel('Average computation time / $\\mu s$')
+        plt.tight_layout()
         plt.legend()
+        plt.gca().set_xscale("log")
         plt.xlim(theta_min, theta_max)
+        plt.ylim(0)
         plt.savefig(f'{figDir}time_theta.pdf')
 
     AnalyseParam(fileName, figDir, loopPlt, finalPlt)
@@ -175,7 +179,8 @@ def AnalyseTheta(fileName:str, figDir:str):
 def AnalyseParamError(folderName:str,
                       figDir:str,
                       paramName:str,
-                      xlabel:str
+                      xlabel:str,
+                      logScale:bool = True
                       ):
     IO.MakeDir(figDir)
 
@@ -261,27 +266,47 @@ def AnalyseParamError(folderName:str,
         perc95_list = [np.percentile(allerr[t], 95) for t in param_list]
         mean_err_list = [np.mean(allerr[t]) for t in param_list]
 
-        def plotter(y:list, err_type:str):
-            lny = np.log(y)
+        def plotter(y:list, err_type:str, **kwargs):
+            plt.plot(param_list,
+                     y,
+                     label = err_type,
+                     linestyle = '--',
+                     marker = 'x',
+                     **kwargs)
 
-            color = plt.plot(param_list,
-                             lny,
-                             label = err_type,
-                             linestyle = '--',
-                             marker = 'x')[0].get_color()
+        plt.figure(1)
+        # matplotlib order for AnaylseX plots
+        color_map = {'brute': 'blue', 'bh': "orange", "fmm": 'green'}
+        plotter(mean_err_list, int_name, color = color_map[int_type])
 
+        plt.figure(0)
         plotter(mean_err_list, 'mean error')
         plotter(perc5_list, '5th percentile error')
         plotter(perc95_list, '95th percentile error')
+        plt.gca().set_yscale('log')
+        if logScale:
+            plt.gca().set_xscale("log")
         plt.title(f"Error against {xlabel} ({int_name})")
         plt.xlabel(f'{xlabel.capitalize()}')
-        plt.ylabel('ln(relative error)')
+        plt.ylabel('relative error')
         plt.legend()
         plt.xlim(param_min, param_max)
 
         plt.savefig(f'{figDir}err_{paramName}_{int_type}.pdf')
         plt.clf()
 
+    plt.figure(1)
+    plt.gca().set_yscale('log')
+    if logScale:
+        plt.gca().set_xscale("log")
+    plt.title(f"Error against {xlabel}")
+    plt.xlabel(f'{xlabel.capitalize()}')
+    plt.ylabel('relative error')
+    plt.legend()
+    plt.xlim(param_min, param_max)
+
+    plt.savefig(f'{figDir}err_{paramName}.pdf')
+    plt.clf()
 
 # TODO: BROKEN with plt.show()?
 def VisualiseGrid(grid:Grid,

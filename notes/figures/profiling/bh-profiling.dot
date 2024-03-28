@@ -1,0 +1,12 @@
+digraph "callgraph" {
+  F5a04f48350c8 [label="sim::BarnesHut::Calculate(sim:...\n2 478 385 785"];
+  F5a04f4836348 [label="sim::BarnesHut::EvaluateAccel(...\n2 413 246 003"];
+  F5a04f4858738 [label="sim::Matrix<>::Matrix(int, int...\n153 570 204"];
+  F5a04f485e218 [label="sim::BarnesHut::EvaluateAccel(...\n2 412 964 003"];
+  F5a04f485e9d8 [label="sim::InvSqKernels::M2X(sim::Oc...\n2 249 641 029"];
+  F5a04f48350c8 -> F5a04f4836348 [weight=3,label="2 413 246 003 (1 000x)"];
+  F5a04f4836348 -> F5a04f485e218 [weight=3,label="2 412 964 003 (8 000x)"];
+  F5a04f485e218 -> F5a04f485e218 [weight=3,label="5 614 357 238 (691 792x)"];
+  F5a04f485e218 -> F5a04f485e9d8 [weight=3,label="2 249 641 029 (156 225x)"];
+  F5a04f485e9d8 -> F5a04f4858738 [weight=2,label="153 570 204 (156 225x)"];
+}

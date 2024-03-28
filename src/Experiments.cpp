@@ -296,25 +296,28 @@ void ThetaComplexity() {
     std::ofstream stream;
     if (!CompStreamSetup(stream, fileParams)) { return; }
 
-    const int n = 4000;
-    const int num_theta = 10;
-    const double theta_min = 0.1;
+    const double theta_min = 0.001;
     const double theta_max = 1;
-    const double del_theta = (theta_max - theta_min) / (num_theta - 1);
+    const int runs_per_fac_10 = 8; 
+    const double factor = std::pow(10, 1.0 / runs_per_fac_10);
+    const int num_theta = std::log(theta_max / theta_min)
+        / std::log(factor) + 1;
+
+    double theta = theta_min;
 
     // log to file
     stream << num_theta << std::endl;
 
     for (int i = 0; i < num_theta; i++) {
-        double theta = theta_min + i * del_theta;
         assert(theta > 0);
     
         GenParams params;
-        params.n = n;
         params.theta = theta;
         Benchmarker bm(params, fileParams, stream);
 
         bm.Run(theta, i != 0);
+
+        theta *= factor;
     }
 }
 

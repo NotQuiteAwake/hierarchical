@@ -1,0 +1,25 @@
+SRC_DIR = ./notes
+FIG_DIR = ./notes/figures
+BUILD_DIR = $(SRC_DIR)/output
+
+MD = $(wildcard $(SRC_DIR)/*.md)
+PDF = $(MD:%.md=%.pdf)
+
+PANDOC = pandoc
+PANDOC_FLAGS = --standalone --number-sections --filter pandoc-crossref\
+			   --resource-path=notes/figures/
+
+.PHONY: rep
+
+$(info $$var is [${MD}])
+
+rep : $(PDF)
+
+$(SRC_DIR)/%.pdf : $(SRC_DIR)/%.md
+	$(PANDOC) $(PANDOC_FLAGS) $^ --output $@
+
+$(SRC_DIR)/*.md : $(FIG_DIR)/*
+
+.PHONY: clean
+clean:
+	-rm -f $(PDF)

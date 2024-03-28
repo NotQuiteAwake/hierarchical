@@ -1,23 +1,22 @@
 MAKEFLAGS := --jobs=$(shell nproc)
 # MAKEFLAGS += --output-sync=target
 
-.PHONY: default all hchl test docs clean
+MKF = $(wildcard makefiles/makefile.*)
+
+.PHONY: clean hchl default
 
 default: hchl
-
-all: hchl test docs
 
 hchl:
 	make -f makefiles/makefile.hchl
 
-test:
-	make -f makefiles/makefile.test
-
-docs:
-	make -f makefiles/makefile.docs
-
 clean:
 	make -f makefiles/makefile.hchl clean
-	make -f makefiles/makefile.test clean
-	make -f makefiles/makefile.docs clean
+	for mk in $(MKF); do make -f $$mk clean; done
 	rm *.plist
+
+%:
+	make -f makefiles/makefile.$@
+
+
+
