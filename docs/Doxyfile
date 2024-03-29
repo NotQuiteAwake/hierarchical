@@ -1,19 +1,18 @@
 PROJECT_NAME            = "Hierarchical"
-INPUT                   = "../src/"
+INPUT                   = "../src/" "../pysrc/"
 GENERATE_LATEX          = YES
 PDF_HYPERLINKS          = YES
-# OUTPUT_DIRECTORY        = "doc"
-EXTRACT_ALL             = YES
-
 HTML_COLORSTYLE         = LIGHT
+# OUTPUT_DIRECTORY        = "doc"
 
+EXTRACT_ALL             = NO
 HAVE_DOT                = YES
-CALL_GRAPH              = YES
-CALLER_GRAPH            = YES
+CALL_GRAPH              = NO
+CALLER_GRAPH            = NO
 UML_LOOK                = NO
 
 SHOW_USED_FILES         = YES
 FULL_PATH_NAMES         = NO
-VERBATIM_HEADERS        = YES
+VERBATIM_HEADERS        = NO
 # SOURCE_BROWSER          = YES
 

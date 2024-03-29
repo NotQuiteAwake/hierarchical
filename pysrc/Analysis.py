@@ -18,6 +18,11 @@ int_mapping:dict[str, str] = {'fmm':'FMM',
                               'bh':'Barnes-Hut'
                               }
 
+def approx(a:float, b:float):
+    eps:float = 1e-5
+    return abs(a - b) < eps
+
+
 def GetResStats(paramList:list, res:dict, int_type:str):
     avg_list:list = []
     std_list:list = []
@@ -218,7 +223,18 @@ def AnalyseParamError(folderName:str,
         allerr:dict[float, list[float]] = {}
 
         for param in param_list:
-            print(param)
+            # displayed param
+            param_disp = param
+            if approx(int(param_disp), param_disp):
+                # if it looks like an interger make it so
+                param_disp = int(param_disp)
+            else:
+                # 3 sig fig.
+                # I was just about to praise dynamic typing, when I typed the
+                # variable wrong and couldn't see why param_disp isn't updated.
+                param_disp = f'{param:.3}'
+            print(param_disp)
+
             # fn: file_name
             fn_brute = fn_by_inter['brute'][param_min]
             # some may have brute calculated only once
@@ -252,14 +268,16 @@ def AnalyseParamError(folderName:str,
                 l = 1e-16
 
             divs:int = 30
-            plt.title(f'Error distribution ({paramName} = {param}, {int_name})')
+
+            plt.title(f"Error distribution for {xlabel} = {param_disp}, " + 
+                      f"{int_name}")
             plt.xlabel('error')
             plt.ylabel('Number of particles')
             plt.hist(allerr[param],
                      bins=np.logspace(np.log10(l), np.log10(r), divs))
             plt.xlim(l, r)
             plt.gca().set_xscale("log")
-            plt.savefig(f'{figDir}{int_type}_hist_{param}.pdf')
+            plt.savefig(f'{figDir}{int_type}_hist_{param_disp}.pdf')
             plt.clf()
 
         perc5_list = [np.percentile(allerr[t], 5) for t in param_list]
@@ -420,10 +438,6 @@ def GridSnapshots(grids:dict[float, Grid],
                   int_type:str = None):
     IO.MakeDir(figDir)
 
-    eps:float = 1e-5
-    def approx(a:float, b:float):
-        return abs(a - b) < eps
-
     t_list = list(grids.keys())
     t_min:float = min(t_list)
     t_max:float = max(t_list)
@@ -438,6 +452,7 @@ def GridSnapshots(grids:dict[float, Grid],
                       scale,
                       f"{int_mapping[int_type]} t = {t:.2f}",
                       fig)
+        fig.tight_layout()
         fig.savefig(f'{figDir}{int_type}_{t}.pdf')
 
     fig.clf()

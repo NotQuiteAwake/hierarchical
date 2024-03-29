@@ -330,13 +330,12 @@ void ColdStartSim() {
     const double seed = 1;
     dist::SetSeed(seed);
 
-    const int n = 1000;
-    Grid grid(n);
+    Grid grid(genParams.n);
     const double mean_mass = 10;
     const double sigma_mass = 1;
     const Vec centre({0, 0, 0});
     const double R = genParams.scale / 2;
-    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
+    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, genParams.n);
     par_list = dist::SetSphericalPos(centre, 0, R, par_list);
    
     grid.AddParticles(par_list);
@@ -346,14 +345,14 @@ void ColdStartSim() {
 void ThinDiskSim() {
     GenParams genParams;
     genParams.scale = 20;
+    genParams.n = 500;
     FileParams fileParams("disk/");
     Benchmarker bm(genParams, fileParams);
 
     const double seed = 10;
     dist::SetSeed(seed);
 
-    const int n = 500;
-    Grid grid(n);
+    Grid grid(genParams.n);
 
     const double mean_mass = 10;
     const double sigma_mass = 1;
@@ -363,7 +362,7 @@ void ThinDiskSim() {
     const double R = genParams.scale;
     const double z_spread = 0.5;
 
-    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
+    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, genParams.n);
     par_list = dist::SetDiskPos(centre, axis, 0, R, z_spread, par_list);
 
     {
@@ -376,7 +375,7 @@ void ThinDiskSim() {
 
         // expectation from virial thm
         const double KE = -1.0 / 2 * PE;
-        const double I = 1.0 / 2 * (mean_mass * n) * (R * R); // MOI
+        const double I = 1.0 / 2 * (mean_mass * genParams.n) * (R * R); // MOI
         const Vec omega = axis * std::sqrt(2 * KE / I);
         par_list = dist::SetUniformRotVel(centre, omega, par_list);
     }
@@ -394,15 +393,14 @@ void GalaxySim() {
     const double seed = 10;
     dist::SetSeed(seed);
 
-    const int n = 1000;
-    Grid grid(n);
+    Grid grid(genParams.n);
 
     const Vec centre({0, 0, 0});
     const Vec axis({0, 0, 1});
 
     const double mean_mass = 40;
     const double sigma_mass = 7;
-    const double smbh_mass = 5 * mean_mass * n;
+    const double smbh_mass = 5 * mean_mass * genParams.n;
     Particle smbh(smbh_mass, smbh_mass);
     smbh.pos = centre;
 
@@ -411,7 +409,7 @@ void GalaxySim() {
     const double r1 = scale;
     const double z_spread = 5;
 
-    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, n);
+    auto par_list = dist::MakeNormalMass(mean_mass, sigma_mass, genParams.n);
     par_list = dist::SetDiskPos(centre, axis, r0, r1, z_spread, par_list);
 
     const double G = 1;
@@ -433,7 +431,7 @@ void TwoGalaxiesSim() {
     const double seed = 2333;
     dist::SetSeed(seed);
 
-    const int n = 1000;
+    const int n = genParams.n;
     Grid grid(2 * n);
 
     const double mean_mass = 40;

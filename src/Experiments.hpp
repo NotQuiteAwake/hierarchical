@@ -3,11 +3,9 @@
 
 #include <string>
 #include <cmath>
-#include <vector>
 #include <memory>
 #include <fstream>
 #include "Interaction.hpp"
-#include "Kernels.hpp"
 #include "InvSqKernels.hpp"
 #include "Integrator.hpp"
 

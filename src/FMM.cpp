@@ -37,6 +37,12 @@ void FMM::Interact(Octree* node1, Octree* node2, Grid& grid) const {
     int64_t n1 = node1->mSouls.size();
     int64_t n2 = node2->mSouls.size();
     int64_t pairwise_terms = n1 * n2;
+    if (node1 == node2) {
+        // self-interaction, pair number different.
+        // n1 >= 1 for all created nodes.
+        assert(n1 >= 1);
+        pairwise_terms = (n1 * (n1 - 1)) / 2;
+    }
 
     if ((node1->IsLeaf() && node2->IsLeaf())
             || pairwise_terms <= mMaxPairwiseLimit)
