@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import matplotlib.pyplot as plt
-import Analysis
+import pysrc.Analysis as Analysis
 
 def main():
-    data_dir = '../data/'
+    data_dir = 'data/'
 
 #    n_comp_dir = data_dir + 'n-complexity/'
 #    Analysis.AnalyseN(n_comp_dir + 'complexity.out',
@@ -13,23 +13,23 @@ def main():
 #                               paramName = 'n',
 #                               xlabel = 'number of particles $n$')
 #
-#    p_comp_dir = data_dir + 'p-complexity/'
-#    Analysis.AnalyseP(p_comp_dir + 'complexity.out',
-#                                   p_comp_dir + 'analysis/')
-#
-#    Analysis.AnalyseParamError(p_comp_dir + 'dump/',
-#                               p_comp_dir + 'error/',
-#                               paramName = 'p',
-#                               xlabel = 'order of expansion $p$',
-#                               logScale = False)
-    theta_comp_dir = data_dir + 'theta-complexity/'
-    Analysis.AnalyseTheta(theta_comp_dir + 'complexity.out',
-                          theta_comp_dir + 'analysis/')
+    p_comp_dir = data_dir + 'p-complexity/'
+    Analysis.AnalyseP(p_comp_dir + 'complexity.out',
+                                   p_comp_dir + 'analysis/')
 
-    Analysis.AnalyseParamError(theta_comp_dir + 'dump/',
-                               theta_comp_dir + 'error/',
-                               paramName = 'theta',
-                               xlabel = '$\\theta$')
+    Analysis.AnalyseParamError(p_comp_dir + 'dump/',
+                               p_comp_dir + 'error/',
+                               paramName = 'p',
+                               xlabel = 'order of expansion $p$',
+                               logScale = False)
+#    theta_comp_dir = data_dir + 'theta-complexity/'
+#    Analysis.AnalyseTheta(theta_comp_dir + 'complexity.out',
+#                          theta_comp_dir + 'analysis/')
+#
+#    Analysis.AnalyseParamError(theta_comp_dir + 'dump/',
+#                               theta_comp_dir + 'error/',
+#                               paramName = 'theta',
+#                               xlabel = '$\\theta$')
 #
 #    cold_dir = data_dir + 'cold/'
 #    Analysis.AnalyseEvo(cold_dir + 'dump/',
