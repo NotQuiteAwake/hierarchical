@@ -10,6 +10,7 @@ docs: $(DOCS_TGT)
 
 $(DOCS_TGT): $(DOCS_SRC)
 	cd $(DOCS_DIR); doxygen
+	sleep 1
 	cd $(DOCS_DIR)/latex/; make
 
 .PHONY: clean

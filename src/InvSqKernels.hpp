@@ -8,7 +8,6 @@ namespace sim {
 
 class InvSqKernels : public Kernels {
     private:
-        const int useBoostLimit = -1;
         const double mG;
         ComplexMatrix mTempMatrix;
 
@@ -23,12 +22,6 @@ class InvSqKernels : public Kernels {
         // defaults to attractive force (gravity)
         InvSqKernels(int p, double G = -1);
 
-        double Prefactor(int n, int m) const;
-        // surface spherical harmonics via Boost
-        cdouble Y(const Vec& v, int n, int m) const;
-        // solid spherical harmonics as per Dehnen 2014 (boost)
-        cdouble GammaBoost(const Vec& v, int n, int m) const;
-        cdouble ThetaBoost(const Vec& v, int n, int m) const;
         cdouble Gamma(const Vec& v, int n, int m) const;
         cdouble Theta(const Vec& v, int n, int m) const;
         

@@ -5,8 +5,6 @@
 
 #include <cassert>
 #include <cmath>
-#include "boost/math/special_functions/spherical_harmonic.hpp"
-#include "boost/math/special_functions/factorials.hpp"
 #include "InvSqKernels.hpp"
 
 namespace sim {
@@ -33,47 +31,6 @@ InvSqKernels::InvSqKernels(int p, double G):
     mG(G),
     mTempMatrix(ComplexMatrix(p, p)) {};
 
-double InvSqKernels::Prefactor(int n, int m) const {
-    using boost::math::factorial;
-    return sqrt(factorial<double>(n - m) * factorial<double>(n + m));
-}
-
-/**
- * @brief Calculate surface spherical harmonics via boost
- *
- * My definition of the harmonics here agrees with Dehnen 2014.
- *
- * Interestingly boost documentation says their Legendre has absorbed a sign
- * term, but turns out I still need an extra sign term to get it right. I
- * further need to fix its prefactor to agree with Dehnen 2014.
- *
- * The angle definitions follow those in boost.
- */
-InvSqKernels::cdouble InvSqKernels::Y(const Vec& v, int n, int m) const {
-    using boost::math::spherical_harmonic;
-    double theta = v.GetTheta();
-    double phi = v.GetPhi();
-    cdouble boost_Y = spherical_harmonic(n, m, theta, phi);
-    return boost_Y * sqrt(4 * PI() / (2 * n + 1)) * (m % 2 ? -1.0 : 1.0);
-}
-
-/**
- * @brief Calculate solid harmonics gamma from boost functions
- */
-InvSqKernels::cdouble InvSqKernels::GammaBoost(const Vec& v, int n, int m) const {
-    double r = v.GetNorm();
-    return 1.0 / Prefactor(n, m) * pow(r, n) * Y(v, n, m);
-}
-
-/**
- * @brief Calculate solid harmonics theta from boost functions
- */
-InvSqKernels::cdouble InvSqKernels::ThetaBoost(const Vec& v, int n, int m) const {
-    double r = v.GetNorm();
-    assert(r);
-    return Prefactor(n, m) * pow(r, -n - 1) * Y(v, n, m);
-}
-
 /**
  * @brief Calculate a specific solid harmonics gamma via recurrence.
  *
@@ -86,9 +43,6 @@ InvSqKernels::cdouble InvSqKernels::Gamma(const Vec& v, int n, int m) const {
 
     int abs_m = std::abs(m);
     if (abs_m > n) return 0;
-    if (useBoostLimit >= 0 && (n + abs_m) >= useBoostLimit) {
-        return GammaBoost(v, n, m);
-    }
 
     // O(n + m) evaluation via recurrence
     cdouble cur = 1.0;
@@ -139,9 +93,6 @@ InvSqKernels::cdouble InvSqKernels::Theta(const Vec& v, int n, int m) const {
 
     int abs_m = std::abs(m);
     if (abs_m > n) return 0;
-    if (useBoostLimit >= 0 && (n + abs_m) >= useBoostLimit) {
-        return ThetaBoost(v, n, m);
-    }
 
     // O(n + m) evaluation via recurrence
     const double x = v[0], y = v[1], z = v[2];
