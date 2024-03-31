@@ -123,7 +123,7 @@ void MakeDir(const std::string& dirName) {
  *
  * @param[in, out] stream Output stream to be acted on.
  */
-void SetHexfloat(std::ostream& stream) {
+void SetHexfloatOut(std::ostream& stream) {
     stream << std::hexfloat;
 }
 

@@ -16,7 +16,7 @@ bool FileExists(const std::string& fileName);
 bool CheckFile(const std::string& fileName, bool expect);
 void MakeDir(const std::string& dirName);
 
-void SetHexfloat(std::ostream& stream);
+void SetHexfloatOut(std::ostream& stream);
 
 Octant LoadOctant(std::istream& stream = std::cin);
 Vec LoadVec(std::istream& stream = std::cin);
