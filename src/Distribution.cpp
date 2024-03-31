@@ -171,7 +171,7 @@ std::vector<Particle>& SetNormalPos(
         ) {
     int n = list.size();
     for (int i = 0; i < Vec::mDim; i++) {
-        std::vector<double> x_i = GenUniformMS(posCentre[i], sigma[i], n);
+        std::vector<double> x_i = GenNormal(posCentre[i], sigma[i], n);
         for (int j = 0; j < n; j++) {
             list[j].pos[i] = x_i[j];
         } 
