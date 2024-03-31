@@ -7,11 +7,9 @@ PDF = $(MD:%.md=%.pdf)
 
 PANDOC = pandoc
 PANDOC_FLAGS = --standalone --number-sections --filter pandoc-crossref\
-			   --resource-path=notes/figures/
+			   --citeproc --resource-path=$(SRC_DIR):$(FIG_DIR)
 
 .PHONY: rep
-
-$(info $$var is [${MD}])
 
 rep : $(PDF)
 

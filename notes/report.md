@@ -2,6 +2,7 @@
 title: Hierarchical Methods for N-body Simulations
 author: Jimmy Chen
 date: 27 March 2024
+
 geometry: margin=4cm
 header-includes: |
     \usepackage{bm}
@@ -10,6 +11,8 @@ colorlinks: true
 linkcolor: blue
 subfigGrid: true
 
+bibliography: references.bib
+csl: chicago-author-date.csl
 abstract: |
 
     Two classic algorithms for force calculations in N-body simulations with
@@ -21,7 +24,8 @@ abstract: |
     showed close-to-linear scaling with particle number. The three methods were
     then used with a leapfrog integrator to simulate a number of physical
     scenarios, and their results were compared, showing good agreement in their
-    qualitative behaviours.
+    qualitative behaviours. Excluding this abstract, tables and figures and the
+    appendix, the word count comes just below 3000.
 
 ---
 
@@ -31,12 +35,12 @@ N-body simulations have been a great tool to astrophysicists for the study of
 galactic and celestial dynamics, and as the problems of interest grow
 increasingly large in scale, the calculations are also becoming more
 computationally demanding. In an age when Millennium Runs regularly simulate
-over 10 billion particles [CITATION]{.mark}, execution efficiency of the program
+over 10 billion particles [@Springel2005], execution efficiency of the program
 is essential, and the naive approach of complexity $\mathcal{O}\left(n^2\right)$
 proves completely untenable. Indeed, much work has been done to improve the
 efficiency of force calculation, the typical bottleneck in the simulation. Many
-such algorithms have been proposed, typically trading small amounts of error
-to significantly boost performance.
+such algorithms have been proposed, typically trading small amounts of error to
+significantly boost performance.
 
 One category of such algorithms is known as hierarchical methods, which involves
 recursively subdividing space into boxes of octants, and applying special
@@ -56,7 +60,7 @@ efforts in [Section @sec:optimizations]. Finally a summary is given in [Section
 Before we can approach the algorithms, we must look at multipole expansions,
 which lies at the heart of our implementation. For lack of space, the treatment
 is necessarily very brief, and I refer interested readers to the appendix A of
-[DEHNEN 2014]{.mark} for detailed mathematical derivations.
+[@Dehnen2014] for detailed mathematical derivations.
 
 Our aim is to find for an inverse-square law of coupling constant $G$, an
 expression for the potential $\psi$ at one cluster of charges $b$, with centre
@@ -184,9 +188,9 @@ def Interact(NODE, PARTICLE):
 : Barnes-Hut force calculation. {#lst:bh_interact}
 
 The algorithm essentially simplifies calculation of force from distant boxes, by
-replacing all those pairwise interactions with multipole expansion results. An
-excellent argument in [BARNES 1986]{.mark} demonstrates that this is also of
-complexity $\mathcal{O}(n \log{n})$, leading to an overall complexity of
+replacing all those pairwise interactions with multipole expansion results.  it
+can be shown that this is also of complexity $\mathcal{O}\left(n \log{n}\right)$
+[@Barnes1986], leading to an overall complexity of
 $\mathcal{O}\left(n\log{n}\right)$. There is an additional dependence on
 expansion order $p$, bounded above by $\mathcal{O}\left(p^4\right)$, since not
 all interactions are calculated from the multipole expansion.
@@ -254,9 +258,9 @@ node in time $\mathcal{O}\left(n\right)$. It is then passed upward in another
 $\mathcal{O}\left(n\right)$ operations. The same is true the downward pass of
 $F_n^m$ via L2L and the conversion of $F_n^m$ to forces. The intermediate
 `Interact` function is also expected to be of order $\mathcal{O}\left(n\right)$
-or even less, as demonstrated in [Dehnen 2002]{.mark}. `Interact` will however
-still dominate the execution time, for it calls the time-consuming M2L kernel
-much more than the other parts call their kernels.
+or even less [@Dehnen2002]. `Interact` will however still
+dominate the execution time, for it calls the time-consuming M2L kernel much
+more than the other parts call their kernels.
 
 # Tests and simulations {#sec:test_and_sim}
 
@@ -275,7 +279,7 @@ components and over the $10$ runs in our figures below.
 
 All tests are conducted on a MacBook Pro early 2015 with an Intel
 i7-5557U@3.1GHz and 16GB RAM. The system is a fully upgraded Arch Linux as of
-26th March with Linux kernel 6.8.1. All code has been compiled with `clang++`
+26th March with Linux kernel 6.8.2. All code has been compiled with `clang++`
 version 17.0.6 and the following optimization flags:
 
 > -std=c++17 -O3 -DNDEBUG -ftree-vectorize -flto -finline-small-functions
@@ -380,8 +384,8 @@ can't be met. This is when BH transitions to the brute-force regime ([Figures
 @fig:bh_to_brute_1] to [@fig:bh_to_brute_3]).
 
 Another feature is the long tail towards the right: in each case a small portion
-of particles suffer from significant error. As noted in [DEHNEN 2014]{.mark},
-this can be remediated by using a more sophisticated MAC.
+of particles suffer from significant error. This can be remediated by using a
+more sophisticated MAC [@Dehnen2014].
 
 <div id="fig:theta_dist">
 ![$\theta = 1.0$](dist/bh_hist_1.pdf){width=45%}
@@ -425,7 +429,7 @@ three conditions are:
 
 Due to lack of space we present and discuss the most interesting third case only
 here, while some snapshots of the other two can be found in the
-[APPENDIX]{.mark}. Videos of full simulations are also available.
+[Appendix]. Videos of full simulations are also available.
 
 Snapshots of the third system, shown in [Figure @fig:two_galaxies], display very
 good qualitative agreement across the three methods. As the galaxies rotate
@@ -507,11 +511,10 @@ particle in a separate list. This at least halves the memory requirement.
 
 **Multipole kernels**. My spherical harmonics implementation of complexity
 $\mathcal{O}\left(p^4\right)$ already beats the naive Cartesian expansion of
-order $\mathcal{O}\left(p^6\right)$. However, as covered by [DEHNEN
-2014]{.mark}, the complexity is further reduced to $\mathcal{O}\left(p^3\right)$
-if we rotate the vector connecting the COC onto the z-axis. This might not be
-better for computations of my size however, because of the extra overhead of
-rotation operations.
+order $\mathcal{O}\left(p^6\right)$. However,  the complexity is further reduced
+to $\mathcal{O}\left(p^3\right)$ if we rotate the vector connecting the COC onto
+the z-axis [@Dehnen2014]. This might not be better for computations of my size
+however, because of the extra overhead of rotation operations.
 
 **Recurrence relations**. We can pre-process all solid harmonics of order $p$ by
 harnessing their recurrence relations in time $\mathcal{O}\left(p^2\right)$ with
@@ -541,6 +544,14 @@ kernels.
 \appendix
 
 # Appendix
+
+## Code documentation
+
+The full codebase has been documented, and documentation has been generated with
+`Doxygen` for both `C++` and `Python` files. To view a list of source files,
+please see the _File Index_ section within the generated PDF documentation. Its
+first section also presents an overview on the structure and organisation of
+code, as well as build instructions.
 
 ## Simulation results
 
@@ -587,11 +598,9 @@ Change of energy and angular momentum in cold start.
 ### Single galaxy
 
 For this we use $n = 1000$. Snapshots are shown in [Figure @fig:galaxy]. All the
-masses away from centre are in fact circulating the centre, and despite the
-initial condition of a uniform angular velocity, after some time the angular
-velocity of outer masses drop, agreeing with galactic rotation curves. These
-details are not at all obvious from snapshots alone, and the reader is therefore
-encouraged to check out the actual animations.
+masses away from centre are in fact circulating the centre. The details of the
+evolution are not at all obvious from snapshots alone, and the reader is
+therefore encouraged to check out the actual animations.
 
 For energy and angular momentum change, see [Figure @fig:galaxy_E_L].
 
@@ -624,4 +633,6 @@ BH, FMM. Left to right: $t = 0, 1, 2, 3$.
 
 Change of energy and angular momentum in a single galaxy.
 </div>
+
+# References
 
