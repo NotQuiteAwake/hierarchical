@@ -1,9 +1,19 @@
+/**
+ * @file
+ * @brief Data structure representing a general vector.
+ */
+
 #include <cmath>
 #include <iostream>
 #include <cstring>
 #include "Vec.hpp"
 
 namespace sim {
+
+/**
+ * @class Vec
+ * @brief Data structure representing a general vector.
+ */
 
 static constexpr double PI() { return std::atan(1)*4; }
 
@@ -92,7 +102,9 @@ Vec& Vec::operator-=(const Vec& otherVec) {
     return *this;
 }
 
-// exact identity. Don't care about floating point error.
+/**
+ * @brief Two vectors are equal when their components agree exactly.
+ */
 bool Vec::operator==(const Vec& otherVec) const {
     for (int i = 0; i < Vec::mDim; i++) {
         if (mCoords[i] != otherVec[i]) return false;
@@ -109,15 +121,24 @@ double Vec::GetNorm() const {
     return norm;
 }
 
-// this is not useful for all cases where coords change,
-// so don't maintain a value on change with operator[]
+/**
+ * @brief Calculate the spherical polar coordinate theta.
+ *
+ * This conforms to the boost::math::spherical_harmonic conventions, running
+ * from 0 to pi.
+ */
 double Vec::GetTheta() const {
     double norm = GetNorm();
     if (!norm) return 0;
     return PI() / 2 - std::asin(mCoords[2] / GetNorm());
 }
 
-// conform to boost's spherical_harmonics convention
+/**
+ * @brief Calculate the spherical polar coordinate phi.
+ *
+ * This conforms to the boost::math::spherical_harmonic conventions, running
+ * from 0 to 2pi.
+ */
 double Vec::GetPhi() const {
     const double& x = mCoords[0];
     const double& y = mCoords[1];
@@ -141,6 +162,11 @@ double Vec::GetPhi() const {
     }
 }
 
+/**
+ * @brief Convert spherical polar coordinates to a Cartesian vector
+ *
+ * @return Cartesian vector the spherical coordinates represent.
+ */
 Vec Vec::FromSpherical(double r, double theta, double phi) {
     double x = r * std::sin(theta) * std::cos(phi);
     double y = r * std::sin(theta) * std::sin(phi);

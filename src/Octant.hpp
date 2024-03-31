@@ -27,8 +27,8 @@ class Octant {
         int GetOctantNumber(const Vec& vec) const;
 
         static Octant GetOctant(const Octant& octant, int octantNumber);
-        double GetMaxLength() const;
         Octant GetOctant(int octantNumber) const;
+        double GetMaxLength() const;
 
         double const* operator[](int index) const;
         // TODO: not floating point safe

@@ -1,10 +1,26 @@
+/**
+ * @file
+ * @brief Implementation of brute-force method for force calculation
+ */
+
 #include "Brute.hpp"
 
 namespace sim {
 
+/**
+ * @class Brute
+ * @brief Brute-force implementation of force calculation for whole grid
+ */
+
 Brute::Brute(Force const* forceLaw):
     Interaction(forceLaw) {};
 
+/**
+ * @brief Calculate potential and acceleration for each charge in grid.
+ *
+ * @param[in] g1 input grid
+ * @return Grid containing particles whose accel and potential are updated.
+ */
 Grid Brute::Calculate(const Grid& g1) const {
     int size = g1.GetSize();
     Grid g2 = g1;

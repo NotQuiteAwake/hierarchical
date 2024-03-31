@@ -1,18 +1,47 @@
 #ifndef MATRIXHEADERDEF_TPP
 #define MATRIXHEADERDEF_TPP
 
+/**
+ * @file
+ * @brief Implementation of the Matrix class for multipole coefficient storage.
+ */
+
 #include <cassert>
 #include "Matrix.hpp"
 
 namespace sim {
 
-// pre-allocate
+/**
+ * @class
+ * @brief Implementation of the Matrix class for multipole coefficient storage.
+ *
+ * We note that nrows and ncols have special meanings: One can access row
+ * indices 0 to nrows inclusive, and column indices -ncols ... +ncols inclusive.
+ *
+ * This is for compatibility with multipole expansion coefficients, which do
+ * have this index range.
+ */
+
+/**
+ * @brief Initialise a Matrix with parameters nrows and ncols.
+ *
+ * For nrows and ncols see class documentation.
+ *
+ * @tparam T A numerical type (double, std::complex<double>, ...)
+ */
 template<typename T> Matrix<T>::Matrix(int nrows, int ncols) {
     Resize(nrows, ncols);
 }
 
+/**
+ * @brief Resizwe the matrix to work with parameters nrows and ncols
+ *
+ * For nrows and ncols see class documentation.
+ */
 template<typename T> void Matrix<T>::Resize(int nrows, int ncols) {
-    // must work for 0 to nrows inclusive
+    assert(nrows >= 0);
+    assert(ncols >= 0);
+
     mRows.resize(nrows + 1);
     for (Row<T>& row : mRows) {
         row.Resize(ncols);
