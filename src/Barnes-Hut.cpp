@@ -1,15 +1,33 @@
+/**
+ * @file
+ * @brief Implementation of Barnes-Hut method for force calculation.
+ */
+
 #include <cassert>
 #include "Barnes-Hut.hpp"
 
 namespace sim {
 
+/**
+ * @class BarnesHut
+ * @brief Calculate forces of a whole grid with the Barnes-Hut method.
+ */
+
 bool BarnesHut::IsFarAway(Octree const* node, const Particle& par) const {
-    const Vec dr = par.pos - node->com;
+    const Vec dr = par.pos - node->coc;
     const double dist = dr.GetNorm();
     double l = node->GetMaxLength();
     return l < dist * mTheta; // for better double precision
 }
 
+/**
+ * @brief Calculate acceleration on supplied particle by DFS (destructive)
+ *
+ * @param[in] soul of the input particle
+ * @param[in, out] par Particle in question
+ * @param[in] node Current node the DFS is at (start at root)
+ * @return Particle with updated accel and potential
+ */
 Particle& BarnesHut::EvaluateAccel(
         int soul,
         Particle& par,
@@ -18,7 +36,7 @@ Particle& BarnesHut::EvaluateAccel(
     // this node does not exist.
     if (!node) { return par; }
     //DEBUG
-    //std::cout << node->com << std::endl;
+    //std::cout << node->coc << std::endl;
 
     if (node->IsLeaf()) {
         assert(node->mSouls.size() == 1);
@@ -63,6 +81,12 @@ double BarnesHut::GetTheta() const {
     return mTheta;
 }
 
+/**
+ * @brief Calculate force for all particles in grid
+ *
+ * @param[in] g1 Original grid
+ * @return Grid with accel and potential overwritten in particles
+ */
 Grid BarnesHut::Calculate(const Grid& g1) const {
     Grid grid = g1;
     std::unique_ptr<Octree> root = Octree::BuildTree(g1, 1, mP);

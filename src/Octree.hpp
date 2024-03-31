@@ -40,11 +40,11 @@ class Octree {
         ComplexMatrix F; // local expansion
 
         // the next two lines took me a full day to diagnose. Without these lines
-        // sometimes com and mass are correctly zeroed sometimes they are not.
+        // sometimes coc and charge are correctly zeroed sometimes they are not.
         // thanks to valgrind and -fsanitize=address
         // boy is C++ initialization not a bloody mess.
-        Vec com = Vec(); // centre of mass
-        double mass = 0;
+        Vec coc = Vec(); // centre of charge
+        double charge = 0;
 
         Octree(Octree* parent,
                const Grid& grid,

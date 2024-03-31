@@ -12,6 +12,11 @@ class InvSqKernels : public Kernels {
         const double mG;
         ComplexMatrix mTempMatrix;
 
+        void Gamma(const Vec& v, int n);
+        void Theta(const Vec& v, int n);
+        void AddAccel(Particle& par,
+                const ComplexMatrix& F) const override;
+
     public:
         typedef std::complex<double> cdouble;
 
@@ -26,14 +31,10 @@ class InvSqKernels : public Kernels {
         cdouble ThetaBoost(const Vec& v, int n, int m) const;
         cdouble Gamma(const Vec& v, int n, int m) const;
         cdouble Theta(const Vec& v, int n, int m) const;
-        void Gamma(const Vec& v, int n);
-        void Theta(const Vec& v, int n);
         
         ComplexMatrix GammaCopy(const Vec& v, int n);
         ComplexMatrix ThetaCopy(const Vec& v, int n);
 
-        void AddAccel(Particle& par,
-                const ComplexMatrix& F) const override;
         void P2M(Octree* leaf) override;
         void M2M(Octree const* child, Octree* parent) override;
         ComplexMatrix M2X(Octree const* source, const Vec& s) override;

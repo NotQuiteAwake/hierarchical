@@ -2,27 +2,16 @@
 #define DISTRIBUTIONHEADERDEF
 
 #include <vector>
-#include <random>
 #include "Particle.hpp"
-#include "Octant.hpp"
 
 namespace sim {
 
 namespace dist {
 
-namespace {
-double massCutoff = 0.05;
-int seed = 0;
-std::mt19937 engine;
-
-std::vector<double> GenNormal(double mean, double stdev, int n);
-std::vector<double> GenUniform(double left, double right, int n);
-std::vector<double>& TrimMasses(std::vector<double>& masses); 
-
-}
-
 void SetSeed(int newSeed);
+int GetSeed();
 void SetMassCutoff(double newCutoff);
+double GetMassCutoff();
 
 // TODO: works for gravity only right now.
 std::vector<Particle> MakeUniformMass(double mean, double spread, int n);

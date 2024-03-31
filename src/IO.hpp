@@ -11,17 +11,9 @@ namespace sim {
 
 namespace IO {
 
-namespace {
-template<typename T> std::vector<T> LoadVector(std::istream& stream);
-template<typename T> Matrix<T> LoadMatrix(std::istream& stream);
-
-template<typename T> void DumpVector(const std::vector<T> vector,
-        std::ostream& stream);
-template<typename T> void DumpMatrix(const Matrix<T> matrix,
-        std::ostream& stream);
-}
-
+void Err(const std::string& errMessage, std::ostream& stream = std::cerr);
 bool FileExists(const std::string& fileName);
+bool CheckFile(const std::string& fileName, bool expect);
 void MakeDir(const std::string& dirName);
 
 void SetHexfloat(std::ostream& stream);
@@ -40,18 +32,9 @@ void DumpGrid(const Grid& grid, const std::string& file); // to file
 Grid LoadGrid(std::istream& stream = std::cin);
 Grid LoadGrid(const std::string& file); // from file
 
-namespace {
-void DumpOctreeNode(Octree const* node, std::ostream& stream);
-void DumpOctreeHelper(Octree const* node, std::ostream& stream);
-}
 void DumpOctree(Octree const* octree, std::ostream& stream = std::cout);
 void DumpOctree(Octree const* octree, const std::string& file); // to file
 
-namespace {
-void LoadOctreeNode(Octree* node, std::istream& stream);
-void LoadOctreeHelper(Octree* node, const Grid& grid,
-        std::istream& stream);
-}
 std::unique_ptr<Octree> LoadOctree(
         const Grid& grid,
         std::istream& stream = std::cin

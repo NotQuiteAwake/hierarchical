@@ -1,5 +1,15 @@
-// insert remarks about why dumping classes as json files in python is the best
-// human invention ever :)
+/**
+ * @file
+ * @brief Library for manipulating data into / from text.
+ *
+ * The function names and parameters should be self explanatory. When an
+ * std::istream is not supplied, std::cin is used by default. Similarly if
+ * std::ostream is absent, std::cout is used. Alternatively a path to a file can
+ * be supplied with the fileName parameter.
+ *
+ * Insert remarks about why dumping classes as json files in python is the best
+ * human invention ever :)
+ */
 
 #include <string>
 #include <cassert>
@@ -63,15 +73,56 @@ template<typename T> void DumpMatrix(
 }
 }
 
+void Err(const std::string& errMessage, std::ostream& stream) {
+    stream << "(E) " << errMessage << std::endl;
+}
+
 bool FileExists(const std::string& fileName) {
     // fileName automatically converted to std::filesystem::path
     return std::filesystem::exists(fileName);
+}
+
+/**
+ * @brief Check if file or folder exists.
+ *
+ * If the existence state is different from the expect value, complain in log.
+ * The function that receives the unexpected state will likely just abort.
+ *
+ * @param[in] fileName Path to file or folder.
+ * @param[in] expect Whether we expect the file or folder to be there or not
+ * @return Whether the folder or file exists or not.
+ */
+bool CheckFile(const std::string& fileName, bool expect) {
+    bool exists = IO::FileExists(fileName);
+
+    if (expect && !exists) {
+        std::string msg = "The directory/file " + fileName;
+        msg += " does not exist. The called function may refuse to run.";
+        Err(msg);
+    } else if (!expect && exists) {
+        std::string msg = "The directory/file " + fileName;
+        msg += " already exists. The called function may refuse to run.";
+        Err(msg);
+    }
+    return exists; 
 }
 
 void MakeDir(const std::string& dirName) {
     std::filesystem::create_directory(dirName);
 }
 
+/**
+ * @brief Set the ostream to output floating points in hexfloat format.
+ *
+ * Note that for istream's, the use of std::hexfloat seems to be less
+ * straightforward. There appears to be a bug in g++:
+ *
+ * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=81122
+ *
+ * However my attemps in clang++ has been equally unsucessful.
+ *
+ * @param[in, out] stream Output stream to be acted on.
+ */
 void SetHexfloat(std::ostream& stream) {
     stream << std::hexfloat;
 }
@@ -185,14 +236,18 @@ Grid LoadGrid(const Grid& grid, const std::string& fileName) {
 namespace {
 void DumpOctreeNode(Octree const* node, std::ostream& stream) {
     DumpOctant(node->GetOctant(), stream);
-    DumpVec(node->com, stream);
-    stream << node->mass << std::endl;
+    DumpVec(node->coc, stream);
+    stream << node->charge << std::endl;
 
     DumpVector(node->mSouls, stream);
     DumpMatrix(node->M, stream);
     DumpMatrix(node->F, stream);
 }
 
+/**
+ * @brief Dump the Octree recursively in a pre-order DFS
+ *
+ */
 void DumpOctreeHelper(Octree const* node, std::ostream& stream) {
     assert(node);
     DumpOctreeNode(node, stream);
@@ -231,8 +286,8 @@ namespace {
 void LoadOctreeNode(Octree* node, std::istream& stream) {
     typedef std::complex<double> cdouble;
     node->SetOctant(LoadOctant(stream));
-    node->com = LoadVec(stream);
-    stream >> node->mass;
+    node->coc = LoadVec(stream);
+    stream >> node->charge;
     
     node->mSouls = LoadVector<int>(stream);
     // mOctantSouls is not recovered as a compromise for readability.
@@ -241,6 +296,10 @@ void LoadOctreeNode(Octree* node, std::istream& stream) {
     node->F = LoadMatrix<cdouble>(stream);
 }
 
+/**
+ * @brief Load Octree recursively in a pre-order fashion
+ *
+ */
 void LoadOctreeHelper(Octree* node, const Grid& grid, std::istream& stream) {
     LoadOctreeNode(node, stream);
     int child_octant_num; stream >> child_octant_num;

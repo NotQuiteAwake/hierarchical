@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Implementation of the inverse square multipole expansion kernels.
+ */
+
 #include <cassert>
 #include <cmath>
 #include "boost/math/special_functions/spherical_harmonic.hpp"
@@ -6,8 +11,23 @@
 
 namespace sim {
 
+/**
+ * @class
+ * @brief Implementation of the inverse square multipole expansion kernels.
+ *
+ * As in the Kernels interface, non-const reference or pointer parameters in
+ * method signature are usually subject to direct modification, as they are the
+ * the "target" of the operation.
+ */
+
 static constexpr double PI() { return std::atan(1) * 4; }
 
+/**
+ * @brief Initialise InvSqKernels.
+ *
+ * @param[in] p Order of multipole expansion.
+ * @param[in] G Coupling constant in inverse-square law force.
+ */
 InvSqKernels::InvSqKernels(int p, double G):
     Kernels(p),
     mG(G),
@@ -18,9 +38,17 @@ double InvSqKernels::Prefactor(int n, int m) const {
     return sqrt(factorial<double>(n - m) * factorial<double>(n + m));
 }
 
-// boost_Y legendre includes sign term
-// but still differs by a factor, and a sign...?
-// further note the definitions of theta and phi.
+/**
+ * @brief Calculate surface spherical harmonics via boost
+ *
+ * My definition of the harmonics here agrees with Dehnen 2014.
+ *
+ * Interestingly boost documentation says their Legendre has absorbed a sign
+ * term, but turns out I still need an extra sign term to get it right. I
+ * further need to fix its prefactor to agree with Dehnen 2014.
+ *
+ * The angle definitions follow those in boost.
+ */
 InvSqKernels::cdouble InvSqKernels::Y(const Vec& v, int n, int m) const {
     using boost::math::spherical_harmonic;
     double theta = v.GetTheta();
@@ -29,17 +57,29 @@ InvSqKernels::cdouble InvSqKernels::Y(const Vec& v, int n, int m) const {
     return boost_Y * sqrt(4 * PI() / (2 * n + 1)) * (m % 2 ? -1.0 : 1.0);
 }
 
+/**
+ * @brief Calculate solid harmonics gamma from boost functions
+ */
 InvSqKernels::cdouble InvSqKernels::GammaBoost(const Vec& v, int n, int m) const {
     double r = v.GetNorm();
     return 1.0 / Prefactor(n, m) * pow(r, n) * Y(v, n, m);
 }
 
+/**
+ * @brief Calculate solid harmonics theta from boost functions
+ */
 InvSqKernels::cdouble InvSqKernels::ThetaBoost(const Vec& v, int n, int m) const {
     double r = v.GetNorm();
     assert(r);
     return Prefactor(n, m) * pow(r, -n - 1) * Y(v, n, m);
 }
 
+/**
+ * @brief Calculate a specific solid harmonics gamma via recurrence.
+ *
+ * Kept for completeness, but there is no need for this - in all applications we
+ * just use the preprocessed full matrix which is quicker.
+ */
 InvSqKernels::cdouble InvSqKernels::Gamma(const Vec& v, int n, int m) const {
     typedef InvSqKernels::cdouble cdouble;
     using namespace std::complex_literals;
@@ -90,6 +130,9 @@ InvSqKernels::cdouble InvSqKernels::Gamma(const Vec& v, int n, int m) const {
     return cur;
 }
 
+/**
+ * @brief Calulate a single solid harmonics theta via recurrence.
+ */
 InvSqKernels::cdouble InvSqKernels::Theta(const Vec& v, int n, int m) const {
     typedef InvSqKernels::cdouble cdouble;
     using namespace std::complex_literals;
@@ -142,13 +185,20 @@ InvSqKernels::cdouble InvSqKernels::Theta(const Vec& v, int n, int m) const {
     return cur;
 }
 
-// Spherical harmonics via recurrence reln, ref Dehnen 2014 A.4, A.5
+/**
+ * @brief pre-calculate solid harmonics gamma of order n.
+ *
+ * The recurrence relations follow from Dehnen 2014 A.4 A.5.
+ *
+ * The values are stored in an internal temporary matrix to reduce allocations,
+ * and is made available to all internal functions.
+ */
 void InvSqKernels::Gamma(const Vec& v, int n) {
     typedef InvSqKernels::cdouble cdouble;
     using namespace std::complex_literals;
 
     double r = v.GetNorm();
-    // gamma could represent going from the only mass to com - r = 0. so don't
+    // gamma could represent going from the only mass so coc - r = 0. so don't
     // assert(r);
     assert(n <= mP);
 
@@ -183,6 +233,14 @@ void InvSqKernels::Gamma(const Vec& v, int n) {
     }
 }
 
+/**
+ * @brief pre-calculate solid harmonics theta of order n.
+ *
+ * The recurrence relations follow from Dehnen 2014 A.4 A.5.
+ *
+ * The values are stored in an internal temporary matrix to reduce allocations,
+ * and is made available to all internal functions.
+ */
 void InvSqKernels::Theta(const Vec& v, int n) {
     typedef InvSqKernels::cdouble cdouble;
     using namespace std::complex_literals;
@@ -219,16 +277,34 @@ void InvSqKernels::Theta(const Vec& v, int n) {
     }
 }
 
+/**
+ * @brief Calculate and return a copy of gamma coefficients of order n
+ *
+ * @return solid harmonics gamma of order n.
+ */
 ComplexMatrix InvSqKernels::GammaCopy(const Vec& v, int n) {
     Gamma(v, n);
     return mTempMatrix;
 }
 
+/**
+ * @brief Calculate and return a copy of theta coefficients of order n
+ *
+ * @return solid harmonics theta of order n.
+ */
 ComplexMatrix InvSqKernels::ThetaCopy(const Vec& v, int n) {
     Theta(v, n);
     return mTempMatrix;
 }
 
+/**
+ * @brief Calculate and add accel and pot due to psi to particle.
+ * 
+ * This follows from expression at top of page 3, Dehnen 2014. 
+ *
+ * @param[in, out] par Target particle.
+ * @param[in] psi \f$F_n^m\f$ at particle position.
+ */
 void InvSqKernels::AddAccel(Particle& par,
         const ComplexMatrix& psi) const {
     // note psi[1][0] should just be real.
@@ -237,18 +313,23 @@ void InvSqKernels::AddAccel(Particle& par,
     par.pot += mG * par.GetCharge() * psi[0][0].real();
 }
 
+/**
+ * @brief P2M kernel. (Eq 3c, Dehnen 2014)
+ *
+ * @param[in, out] leaf Leaf node to apply P2M kernel to.
+ */
 void InvSqKernels::P2M(Octree* leaf) {
     assert(leaf);
     assert(leaf->IsLeaf());
 
-    const Vec& com = leaf->com;
+    const Vec& coc = leaf->coc;
 
     for (int soul : leaf->mSouls) {
         const Particle& par = leaf->GetParticle(soul);
         const double q = par.GetCharge();
         const Vec& pos = par.pos;
         
-        Gamma(pos - com, mP);
+        Gamma(pos - coc, mP);
         const ComplexMatrix& gamma = mTempMatrix;
         
         for (int n = 0; n <= mP; n++) {
@@ -260,12 +341,18 @@ void InvSqKernels::P2M(Octree* leaf) {
     
 }
 
+/**
+ * @brief M2M kernel (Eq 3d, Dehnen 2014)
+ *
+ * @param[in] child Child node with known M coefficients
+ * @param[in, out] parent parent node to add shifted M coefficients to
+ */
 void InvSqKernels::M2M(Octree const* child, Octree* parent) {
     assert(parent && child);
     assert(parent == child->GetParent());
 
-    const Vec& zp = parent->com;
-    const Vec& z = child->com;
+    const Vec& zp = parent->coc;
+    const Vec& z = child->coc;
     Gamma(z - zp, mP);
     const ComplexMatrix& gamma = mTempMatrix;
 
@@ -285,11 +372,21 @@ void InvSqKernels::M2M(Octree const* child, Octree* parent) {
     }
 }
 
+/**
+ * @brief Implements M2L, M2P kernels (Eq 3b, Dehnen 2014)
+ *
+ * M2L and M2P both finds F coefficients at a target location, so are the same
+ * thing.
+ *
+ * @param[in] source Node with known M coefficients
+ * @param[in] Target position
+ * @return F coefficients at s position
+ */
 ComplexMatrix InvSqKernels::M2X(Octree const* source, const Vec& s) {
     assert(source);
     ComplexMatrix F(mP, mP);
 
-    const Vec& z = source->com;
+    const Vec& z = source->coc;
     Theta(s - z, mP);
     const ComplexMatrix& theta = mTempMatrix;
     for (int n = 0; n <= mP; n++) {
@@ -307,9 +404,16 @@ ComplexMatrix InvSqKernels::M2X(Octree const* source, const Vec& s) {
     return F;
 }
 
+/**
+ * @brief Implements L2L, L2P kernels (Eq 3f, Dehnen 2014)
+ *
+ * @param[in] previous Node with known F coefficients
+ * @param[in] sp Target location
+ * @return F coefficients at sp
+ */
 ComplexMatrix InvSqKernels::L2X(Octree const* previous, const Vec& sp) {
     assert(previous);
-    const Vec& s = previous->com;
+    const Vec& s = previous->coc;
 
     ComplexMatrix F(mP, mP);
     Gamma(s - sp, mP);

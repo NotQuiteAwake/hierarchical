@@ -1,9 +1,19 @@
+/** 
+ * @file
+ * @brief Implementation of Fast Multipole Method for force calculation.
+ */
+
 #include <memory>
 #include <cassert>
 #include <utility>
 #include "FMM.hpp"
 
 namespace sim {
+
+/**
+ * @class FMM
+ * @brief Fast Multipole Method implementation.
+ */
 
 FMM::FMM(int p,
         double theta,
@@ -18,17 +28,34 @@ FMM::FMM(int p,
     mMaxPairwiseLimit(maxPairwiseLimit),
     mKernels(kernels) {};
 
+/**
+ * @brief Multipole acceptance criteria between two octree nodes
+ *
+ * @return Whether it is allowed to multipole expand between the two nodes.
+ */
 bool FMM::MAC(Octree const* node1, Octree const* node2) const {
-    Vec dr = node1->com - node2->com;
+    Vec dr = node1->coc - node2->coc;
     double dist = dr.GetNorm();
     // TODO: does this really work well for general rect boxes?
     double sum_lengths = node1->GetMaxLength() + node2->GetMaxLength();
     return dist * mTheta >= sum_lengths;
 }
 
-// dual tree traversal similar to Dehnen 2002
-// with simplified boundary cases: leaf boxes have a maximum size,
-// and is not allowed to further subdivide.
+/**
+ * @brief Dual tree traversal for M2L expansions.
+ *
+ * This implementation is similar to that described in Dehnen 2002, except for a
+ * simpler boundary condition. With a max limit on leaf particle number at tree
+ * construction time, we are not allowed to further subdivide when we encounter
+ * leaf nodes.
+ *
+ * The method is destructive, and will modify grid and nodes as it traverses the
+ * tree to save multipole coefficients and partial forces
+ *
+ * @param[in, out] node1 First node in interaction pair
+ * @param[in, out] node2 Second node in interaction pari
+ * @param[in, out] grid Grid to which we save F coefficients and partial forces.
+ */
 void FMM::Interact(Octree* node1, Octree* node2, Grid& grid) const {
     assert(node1);
     assert(node2);
@@ -128,7 +155,15 @@ void FMM::Interact(Octree* node1, Octree* node2, Grid& grid) const {
     }
 }
 
-// algorithm 2 (evaluate gravity) as per Dehnen 2002
+/**
+ * @brief Evaluate acceleration by using L2L push-down, then L2P.
+ * 
+ * The method is destructive as both node and grid will be modified. This is
+ * similar to algorithm 2 (evaluate gravity) of Dehnen 2002.
+ *
+ * @param[in, out] node Current node of DFS
+ * @param[in, out] grid Grid on which new \f$F_n^m\f$, accel and pot are saved.
+ */
 void FMM::EvaluateAccel(Octree* node, Grid& grid) const {
     if (node->IsLeaf()) {
         for (int soul : node->mSouls) {
@@ -146,6 +181,12 @@ void FMM::EvaluateAccel(Octree* node, Grid& grid) const {
     }
 }
 
+/**
+ * @brief Calculate acceleration and potential of all particles in grid g1
+ *
+ * @param[in] g1 Initial grid for which acceleration and potential is calculated
+ * @return Grid with acceleration and potential information
+ */
 Grid FMM::Calculate(const Grid& g1) const {
     Grid grid = g1;
     std::unique_ptr<Octree> root = Octree::BuildTree(g1, mMaxPerCell, mP);

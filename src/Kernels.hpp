@@ -10,12 +10,12 @@ class Kernels {
     protected:
         const int mP;
 
+        virtual void AddAccel(Particle& par,
+                const ComplexMatrix& psi) const = 0;
+
     public:
         Kernels(int p);
         virtual ~Kernels() = default;
-
-        virtual void AddAccel(Particle& par,
-                const ComplexMatrix& psi) const = 0;
 
         virtual void P2M(Octree* leaf) = 0;
         virtual void M2M(Octree const* child, Octree* parent) = 0;

@@ -30,17 +30,17 @@ Grid AddTestParticles(const Grid& g1) {
 
 void CheckTree(Octree const* node) {
     assert(node);
-    Vec com = Vec();
-    double mass = 0;
+    Vec coc = Vec();
+    double charge = 0;
     for (int soul : node->mSouls) {
         const Particle& par = node->GetParticle(soul);
-        com += par.pos * par.GetMass();
-        mass += par.GetMass();
+        coc += par.pos * par.GetCharge();
+        charge += par.GetCharge();
         CHECK(node->GetOctant().Within(par.pos));
     }
-    com = com / mass;
+    coc = coc / charge;
     for (int i = 0; i < Vec::mDim; i++) {
-        CHECK(com[i] == doctest::Approx(node->com[i]));
+        CHECK(coc[i] == doctest::Approx(node->coc[i]));
     }
 
     if (node->IsLeaf()) {
