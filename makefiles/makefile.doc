@@ -1,8 +1,10 @@
 SRC_DIR = ./src
+PYSRC_DIR = ./pysrc
 BUILD_DIR = ./build
 DOCS_DIR = ./docs
+README = ./README.md
 
-DOCS_SRC = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*.hpp)
+DOCS_SRC = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*.hpp) $(wildcard $(PYSRC_DIR)/*.py) $(README)
 DOCS_TGT = $(DOCS_DIR)/html $(DOCS_DIR)/latex
 
 .PHONY: docs

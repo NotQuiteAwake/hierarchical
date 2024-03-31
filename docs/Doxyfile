@@ -1,5 +1,5 @@
 PROJECT_NAME            = "Hierarchical"
-INPUT                   = "../src/" "../pysrc/"
+INPUT                   = "../src/" "../pysrc/" "../README.md"
 GENERATE_LATEX          = YES
 PDF_HYPERLINKS          = YES
 HTML_COLORSTYLE         = LIGHT
