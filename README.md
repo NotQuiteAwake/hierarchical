@@ -66,6 +66,10 @@ make test
 
 The binary will be found at `build/test`.
 
+Note that this will be compiled with `-O0` flag and is incompatible with
+previous object files from the `hchl` target compiled with `-O3`. Therefore
+`make clean` (see below) must be run first before changing C++ target.
+
 ### `report`: PDF Generation from markdown
 
 To compile my report, written in `pandoc markdown` at `notes/report.md`, call
@@ -103,6 +107,10 @@ To run Python code, simply edit the `main` function of `main.py` and execute the
 file. Comment and uncomment lines to see the working of data processing
 functions, provided that data has been generated previously from `C++`, stored
 to `data/`, and that the script is executed at the project root.
+
+Some common python libraries such as `matplotlib` and `scipy` will be required.
+Additionally, parts of the code (animation) depends on `ffmpeg` and a Unix-like
+shell environment.
 
 ## Coding style
 

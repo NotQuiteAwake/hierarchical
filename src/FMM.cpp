@@ -53,7 +53,7 @@ bool FMM::MAC(Octree const* node1, Octree const* node2) const {
  * tree to save multipole coefficients and partial forces
  *
  * @param[in, out] node1 First node in interaction pair
- * @param[in, out] node2 Second node in interaction pari
+ * @param[in, out] node2 Second node in interaction pair
  * @param[in, out] grid Grid to which we save F coefficients and partial forces.
  */
 void FMM::Interact(Octree* node1, Octree* node2, Grid& grid) const {

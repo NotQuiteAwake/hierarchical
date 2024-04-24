@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 import scipy as sp
+import subprocess
 
 import numpy.typing as npt
 import typing as tp
@@ -22,6 +23,8 @@ int_mapping:dict[str, str] = {'fmm':'FMM',
                               'brute':'Brute-force',
                               'bh':'Barnes-Hut'
                               }
+
+combScript:str = "scripts/combine-vid.sh"
 
 def approx(a:float, b:float) -> bool:
     """!
@@ -564,6 +567,11 @@ def AnalyseEvo(folderName:str, figDir:str):
         print('Snapshots')
         GridSnapshots(grids, scale, f'{figDir}snap_{int_type}/', int_type)
 
+    print('Combine videos')
+    subprocess.call([combScript, f'{figDir}/', '-y'],
+                    stdin = subprocess.DEVNULL)
+
+    print('Conservation')
     plt.figure(0)
     plt.title("Total energy against time")
     plt.xlabel("Time $t$")
