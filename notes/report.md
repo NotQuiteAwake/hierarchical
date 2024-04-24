@@ -12,7 +12,9 @@ linkcolor: blue
 subfigGrid: true
 
 bibliography: references.bib
-csl: chicago-author-date.csl
+csl: american-physics-society.csl
+link-citations: true
+
 abstract: |
 
     Two classic algorithms for force calculations in N-body simulations with
@@ -142,11 +144,11 @@ whenever we visit a previously not-existing one.
 ```{.python}
 def AddParticle(NODE, PARTICLE):
     if NODE is a leaf:
+        add PARTICLE into NODE
         if NODE has > n_max particles:
             split NODE into smaller octants
-            AddParticle(correct child_node, PARTICLE and particles in NODE)
-        else:
-            add PARTICLE into NODE
+            for particle in NODE:
+                AddParticle(correct child_node, particle)
 
     if NODE is not a leaf:
         AddParticle(correct child_node, PARTICLE)
@@ -292,7 +294,7 @@ processes are closed. No throttling was observed during the runs.
 
 
 | Variable  | Default |
-|------:|:--------|
+|:------:|:--------:|
 |  $n$       | $1000$ |
 |  $\theta$  | $0.5$ |
 |  $p$    |  $3$ |  

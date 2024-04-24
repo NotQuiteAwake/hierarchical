@@ -16,9 +16,13 @@ meant to be an accurate description of the current state of the project**.
 
 # Barnes-Hut algorithm
 
-See [this link](https://www.google.com/search?client=firefox-b-d&q=barnes-hut)
-for a helpful illustration of the algorithm.
-Another useful guide is the [original paper](https://www.nature.com/articles/324446a0).
+See [this link](http://arborjs.org/docs/barnes-hut) and
+[this](https://jheer.github.io/barnes-hut/) for helpful illustrations of the
+algorithm. Another useful guide is the [original
+paper](https://www.nature.com/articles/324446a0).
+
+[Also this](https://people.eecs.berkeley.edu/~demmel/cs267/lecture26/lecture26.html)
+makes it clear that we traverse the tree for each particle.
 
 ## Description
 
@@ -134,7 +138,8 @@ FMM)in _Dehnen 2014_.
 
 As a first step we shall implement _leapfrog_ which requires only acceleration,
 which is readily given by _Dehnen 2014_. We may generalise to more complicated
-methods later on.
+methods later on. Some explanations for the method can be found
+[here](https://www.cs.princeton.edu/courses/archive/fall07/cos126/assignments/nbody-new.html).
 
 # Implementation
 
