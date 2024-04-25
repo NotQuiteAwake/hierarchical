@@ -11,7 +11,6 @@ hchl:
 	make -f makefiles/makefile.hchl
 
 clean:
-	make -f makefiles/makefile.hchl clean
 	for mk in $(MKF); do make -f $$mk clean; done
 	rm *.plist
 

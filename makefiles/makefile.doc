@@ -14,8 +14,10 @@ $(DOCS_TGT): $(DOCS_SRC)
 	cd $(DOCS_DIR); doxygen
 	sleep 1
 	cd $(DOCS_DIR)/latex/; make
+	ln -s $(DOCS_DIR)/latex/refman.pdf .
 
 .PHONY: clean
 clean:
 	-rm -r $(DOCS_DIR)/latex/
 	-rm -r $(DOCS_DIR)/html/
+	-rm refman.pdf

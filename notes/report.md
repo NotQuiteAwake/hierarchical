@@ -6,6 +6,8 @@ date: 27 March 2024
 geometry: margin=4cm
 header-includes: |
     \usepackage{bm}
+    \newcommand\unit[1]{\, \mathrm{#1}}
+
 codeBlockCaptions: true
 colorlinks: true
 linkcolor: blue
@@ -20,33 +22,33 @@ abstract: |
     Two classic algorithms for force calculations in N-body simulations with
     pairwise interactions, the Barnes-Hut (BH) algorithm and the Fast Multipole
     Method (FMM), along with a brute-force method have been implemented in
-    `C++`. The time complexity of the algorithms and their scaling with
-    different parameters have been studied. At large particle numbers, FMM was
-    found to be the most efficient of the three, followed by BH, both of which
-    showed close-to-linear scaling with particle number. The three methods were
-    then used with a leapfrog integrator to simulate a number of physical
+    `C++`. The time complexity and error of the algorithms and their scaling
+    with different parameters have been studied. At large particle numbers, FMM
+    was found to be the most efficient of the three, followed by BH, both of
+    which showed close-to-linear scaling with particle number. The three methods
+    were then used with a leapfrog integrator to simulate a number of physical
     scenarios, and their results were compared, showing good agreement in their
-    qualitative behaviours. Excluding this abstract, tables and figures and the
-    appendix, the word count comes just below 3000.
+    qualitative behaviours. Excluding this abstract and the appendix, the word
+    count comes just below 3000.
 
 ---
 
 # Background
 
 N-body simulations have been a great tool to astrophysicists for the study of
-galactic and celestial dynamics, and as the problems of interest grow
-increasingly large in scale, the calculations are also becoming more
-computationally demanding. In an age when Millennium Runs regularly simulate
-over 10 billion particles [@Springel2005], execution efficiency of the program
-is essential, and the naive approach of complexity $\mathcal{O}\left(n^2\right)$
-proves completely untenable. Indeed, much work has been done to improve the
-efficiency of force calculation, the typical bottleneck in the simulation. Many
-such algorithms have been proposed, typically trading small amounts of error to
+galactic and celestial dynamics. As the problems of interest grow increasingly
+large in scale, the calculations are also becoming more computationally
+demanding. In an age when Millennium Runs regularly simulate over 10 billion
+particles [@Springel2005], efficient execution of the simulation is essential,
+and the naive approach of complexity $\mathcal{O}\left(n^2\right)$ proves
+completely untenable. Indeed, much work has been done to improve the efficiency
+of force calculation, the typical bottleneck in the simulation. Many such
+algorithms have been proposed, typically trading small amounts of error to
 significantly boost performance.
 
 One category of such algorithms is known as hierarchical methods, which involves
 recursively subdividing space into boxes of octants, and applying special
-treatment to particles of well-separated boxes. In this paper, I present
+treatment to particles in well-separated boxes. In this paper, I present
 implementation of two well-known hierarchical approaches, the Barnes-Hut (BH)
 method and Fast Multipole Method (FMM), which differ in their treatment of
 distant boxes.
@@ -61,40 +63,41 @@ efforts in [Section @sec:optimizations]. Finally a summary is given in [Section
 
 Before we can approach the algorithms, we must look at multipole expansions,
 which lies at the heart of our implementation. For lack of space, the treatment
-is necessarily very brief, and I refer interested readers to the appendix A of
+is necessarily very brief, and I refer interested readers to Appendix A of
 [@Dehnen2014] for detailed mathematical derivations.
 
-Our aim is to find for an inverse-square law of coupling constant $G$, an
-expression for the potential $\psi$ at one cluster of charges $b$, with centre
-of charge (COC) $r_b$, due to a far-away, well separated cluster $a$ with COC
-$r_a$. For a particle $j$ in $b$ at $\bm{r}^\prime = \bm{r}_b + \bm{r}_j$ with
-charge $q_j$, the potential of a particle $i$ in $a$ at $\bm{r} = \bm{r}_a +
-\bm{r}_i$, charge $q_i$ is written
+Our aim is to find for an inverse-square law force of coupling constant $G$,
+expressions for the potential $\psi$ and force $\bm{g}$ at one cluster of
+charges $b$, with centre of charge (COC) $r_b$, due to a far-away, well
+separated cluster $a$ with COC $r_a$. For a particle $j$ in $b$ at
+$\bm{r}^\prime = \bm{r}_b + \bm{r}_j$ with charge $q_j$, the potential of a
+particle $i$ in $a$ at $\bm{r} = \bm{r}_a + \bm{r}_i$, charge $q_i$ is written
 \ 
 \begin{align}
 \psi\left(\bm{r}^\prime\right) =
-G \frac{q_i}{\left|\bm{r}_j + \bm{r}_b - \left(\bm{r}_i + \bm{r}_a\right)\right|}
+G \frac{q_i}{\left|\left(\bm{r}_j + \bm{r}_b\right)
+                    - \left(\bm{r}_i + \bm{r}_a\right)\right|}
 \end{align}
 
 Note that the denominator is in fact $\left(\bm{r}_b - \bm{r}_a\right) +
 \left(\bm{r}_j - \bm{r}_i\right)$, where, since the clusters are well separated,
 the first term in brackets dominates. This invites us to perform an Taylor
 expansion in the small parameter (second term) and truncate at the $p$-th order,
-the result of which is a _multipole expansion of order $p$_. So far we have
-worked free of a basis: The resulting expression can be written in Cartesian
-form, or in a more convenient form involving solid spherical harmonics, which I
-adopt in my code.
+the result of which is a _multipole expansion of order $p$_. The force can then
+be found with $\bm{g} = -\bm{\nabla} \psi$. So far we have worked free of a
+basis: The resulting expression can be written in Cartesian form, or in a more
+convenient form involving solid spherical harmonics, which I adopt in my code.
 
 It turns out that in spherical harmonics expansions, we only need two sets of
-coefficients $M_n^m$ and $F_n^m$, $0 \le n \le p$, $-n \le m \le n$ localised at
-the COC of clusters $a$ and $b$ to completely describe an expansion of order
+coefficients $M_n^m$ and $F_n^m$ ($0 \le n \le p$, $-n \le m \le n$) localised
+at the COC of clusters $a$ and $b$ to completely describe an expansion of order
 $p$. Convenient expressions, known as _kernels_, exist for us to calculate
-$M_n^m$ from $a$'s charge distribution, calculate $F_n^m$ from $M_n^m$ and force
-on $b$ particles from $F_n^m$. We can additionally also translate $M_n^m$ and
-$F_n^m$ to new centres. All these mathematical operations have been given
-convenient names as shown in [Table @tbl:kernels]. Because most of them take a
-form similar to matrix multiplications between one set of coefficients and the
-set of solid harmonics of order $p$, the operations are generally of complexity
+$M_n^m$ from $a$'s charge distribution, calculate $F_n^m$ from $M_n^m$ and
+forces on $b$ particles from $F_n^m$. Additional kernels enable us to translate
+$M_n^m$ and $F_n^m$ to new centres. All these kernels have been given convenient
+names as shown in [Table @tbl:kernels]. Because most of them take a form similar
+to matrix multiplications between one set of coefficients and the set of solid
+harmonics of order $p$, the operations are generally of complexity up to
 $\mathcal{O}\left(p^4\right)$.
 
 | Name  | Purpose |
@@ -104,15 +107,20 @@ $\mathcal{O}\left(p^4\right)$.
 |  M2L  | Find $F_n^m$ from distant $M_n^m$  |
 |  M2P  | Find $\psi$, $\bm{g}$ on particle from distant $M_n^m$  |
 |  L2L  | Shift $F_n^m$ expansion centre   |
-|  L2P  | Find $\psi$, $\bm{g}$ on charge from local $F_n^m$  |
+|  L2P  | Find $\psi$, $\bm{g}$ on particle from local $F_n^m$  |
 
 : Kernels in the multipole expansion. {#tbl:kernels}
 
 # Algorithmic approach {#sec:algo}
 
+In this section, I will outline the working of the Barnes-Hut and Fast Multipole
+methods. A brute-force algorithm of complexity $\mathcal{O}\left(n^2\right)$
+naively enumerating each pairwise interaction has also been implemented as a
+reference but will not be discussed further here.
+
 ## Barnes-Hut method
 
-The Barnes-Hut approach starts by constructing an "octree" data structure, with
+The Barnes-Hut approach starts by constructing an _octree_ data structure, with
 which it is easy to determine when a particle is well-separated from a region in
 space. This allows us to make approximations by replacing the charges in that
 space with a multipole expansion from which forces are derived efficiently.
@@ -138,8 +146,9 @@ holds no more than $n_\mathrm{max}$ particles; For Barnes-Hut, $n_\mathrm{max} =
 Such a tree can be constructed with the recursive algorithm in [Listing
 @lst:buildtree], starting from root. This can be done in time
 $\mathcal{O}\left(n \log{n}\right)$, since the expected mean tree height is of
-order $\log{n}$, and this is repeated for each particle. Nodes are created
-whenever we visit a previously not-existing one.
+order $\log{n}$, and this is repeated for each particle. Similarly the space
+complexity is $\mathcal{O}\left(n \log{n} \right)$. Nodes are created
+whenever we visit a previously non-existing one.
 
 ```{.python}
 def AddParticle(NODE, PARTICLE):
@@ -170,18 +179,18 @@ With the octree ready, we are now able to calculate the forces. Introducing the
 parameter $\theta$, we can define a _multipole acceptance criteria_(MAC):
 
 > **Multipole Acceptance Criteria** We are allowed to multipole-expand a source
-> box if $d / x < \theta$, where $d$ is the maximum side of the box, and $x$ is
-> the distance from the particle to the box COC.
+> box if $d / x < \theta$, where $d$ is the length of the longest side of the
+> box, and $x$ is the distance from the particle to the box COC.
 
 The Barnes-Hut calculation on one particle is then shown in [Listing
-@lst:bh_interact]. We simply repeat this procedure to get forces on each
-particle.
+@lst:bh_interact]. We simply repeat this procedure on each particle to get all
+the forces.
 
 ```{.python}
 def Interact(NODE, PARTICLE):
     if NODE is a leaf:
         add force by single particle in NODE to PARTICLE
-    if NODE meets MAC:
+    if NODE satisfies MAC:
         calculate force by NODE on PARTICLE via M2P kernel
     else:
         Interact(child_nodes, PARTICLE)
@@ -189,7 +198,7 @@ def Interact(NODE, PARTICLE):
 
 : Barnes-Hut force calculation. {#lst:bh_interact}
 
-The algorithm essentially simplifies calculation of force from distant boxes, by
+The algorithm essentially simplifies calculation of force from distant boxes by
 replacing all those pairwise interactions with multipole expansion results.  it
 can be shown that this is also of complexity $\mathcal{O}\left(n \log{n}\right)$
 [@Barnes1986], leading to an overall complexity of
@@ -216,7 +225,17 @@ acceptance criteria, this time between two boxes:
 > _opening angle_.
 
 We can then make use of the M2L kernel with the algorithm in [Listing
-@lst:fmm_interact].
+@lst:fmm_interact]. To understand its effect, consider the chain of nodes
+leading from the root to an arbitrary leaf node, $\{a_0, a_1, ..., a_n\}$. As
+`Interact` descend to node $a_i$, boxes satisfying the MAC $\{b_i\}$ are
+expanded, and their influence is recorded in the $F_n^m$ of $a_i$. For
+descendants of $a_i$ then, the children of $b_i$ are now irrelevant. Moving down
+to the next level $a_{i + 1}$, yet some more nodes now satisfy the MAC and will
+be multipole-expanded. The number of such nodes however should be _roughly
+constant_ on each level: only boxes sandwiched between nearby boxes that don't
+satisfy MAC, and $\{b_i\}$, can be considered. We continue descending, until it
+becomes necessary (both nodes are leaves) or more economical (number of direct
+interactions below $n_\mathrm{direct}$) to perform brute-force directly.
 
 ```{.python}
 def Interact(NODE1, NODE2):
@@ -236,24 +255,13 @@ def Interact(NODE1, NODE2):
 
 : Dual-tree traversal {#lst:fmm_interact}
 
-To understand the effect of [Listing @lst:fmm_interact], consider the chain of
-nodes leading from the root to an arbitrary leaf node, $\{a_0, a_1 ..., a_n\}$.
-As `Interact` descend to node $a_i$, large distant boxes $\{b_i\}$ will imprint
-their influence in the $F_n^m$ of $a_i$. For descendants of $a_i$ then, the
-children of $b_i$ are now irrelevant. Moving down to level $a_{i + 1}$, yet some
-more nodes now satisfy the MAC and will be multipole-expanded. The number of new
-nodes however should be _roughly constant_: only boxes sandwiched between nearby
-boxes that don't satisfy MAC, and $\{b_i\}$, can be considered. We continue
-descending, until it becomes necessary (both nodes are leaves) or more
-economical (number of direct interactions below $n_\mathrm{direct}$) to perform
-brute-force directly.
-
 All the necessary interactions to $a_n$ are therefore imprinted in its
 ancestors' $F_n^m$ coefficients. To calculate the total force on each particle
-of $a_n$, we descend from $a_0$ to $a_n$, shift and add $F_n^m$ to the
-child node COC at each step with the L2L kernel, and finally apply the L2P
-kernel on particles in $a_n$. This can be done for all leaf nodes in one go
-with a simple push-down-then-descend DFS after `Interact` has finished.
+of $a_n$, we descend from $a_0$ to $a_n$, shifting $F_n^m$ to the child node COC
+and adding it to the child node $F_n^m$ at each step with the L2L kernel, and
+finally apply the L2P kernel on particles in $a_n$. This can be done for all
+leaf nodes in one go with a simple push-down-then-descend DFS after `Interact`
+has finished.
 
 In building the tree, P2M kernel calculates $M_n^m$ coefficients on the root
 node in time $\mathcal{O}\left(n\right)$. It is then passed upward in another
@@ -265,6 +273,22 @@ dominate the execution time, for it calls the time-consuming M2L kernel much
 more than the other parts call their kernels.
 
 # Tests and simulations {#sec:test_and_sim}
+
+Having presented the algorithms themselves, I evaluate their performance and
+robustness now through various tests and simulations.
+
+All tests and simulations were conducted on a MacBook Pro early 2015 with an
+Intel i7-5557U@3.1GHz and 16GB RAM. The system is a fully upgraded Arch Linux as
+of 26th March with Linux kernel 6.8.2. All code has been compiled with `clang++`
+version 17.0.6 and the following optimization flags:
+
+> -std=c++17 -O3 -DNDEBUG -ftree-vectorize -flto -finline-small-functions
+> -march=native
+
+For best stability, Turbo Boost had been disabled, and CPU governor had been set
+to `performance`, which disables dynamic scaling and fix the CPU frequency to
+its highest (3.1GHz). The laptop was charged throughout, and all foreground
+processes were closed. No throttling was observed during the runs.
 
 ## Complexity and error tests
 
@@ -278,19 +302,6 @@ information on all particles are saved to files, to be processed by `Python`
 scripts. We define the error of a hierarchical method to be the relative error
 against brute-force results, and use the error averaged over all three
 components and over the $10$ runs in our figures below.
-
-All tests are conducted on a MacBook Pro early 2015 with an Intel
-i7-5557U@3.1GHz and 16GB RAM. The system is a fully upgraded Arch Linux as of
-26th March with Linux kernel 6.8.2. All code has been compiled with `clang++`
-version 17.0.6 and the following optimization flags:
-
-> -std=c++17 -O3 -DNDEBUG -ftree-vectorize -flto -finline-small-functions
-> -march=native
-
-For best stability, Turbo Boost has been disabled, and CPU governor has been set
-to `performance`, which disables dynamic scaling and fix the CPU frequency to
-its highest (3.1GHz). The laptop is powered throughout, and all foreground
-processes are closed. No throttling was observed during the runs.
 
 
 | Variable  | Default |
@@ -310,14 +321,14 @@ of masses, demonstrating their superiority at large $n$. Code profiling with
 `valgrind` demonstrates that both code spends the most time in their `Interact`
 routines ($97\%$ for Barnes-Hut, $82\%$ for FMM).
 
-The Barnes-Hut method has a much larger constant of proportionality -
-This is due to the need to compute multipole expansions for each sink particle,
-which is very demanding. FMM does not face the same problem, due to its use of
-box-to-box approximations.
+The Barnes-Hut scaling has a much larger constant of proportionality - This is
+due to the need to compute multipole expansions for each sink particle, which is
+very demanding. FMM does not face the same problem, due to its use of box-to-box
+approximations.
 
-At large $n$, the mean error is largely constant. the very small error of FMM at
+At large $n$, the mean error is largely constant. The very small error of FMM at
 small $n$ is likely because most interactions are allowed to proceed through
-pairwise interactions.
+direct brute-force calculations.
 
 <div id="fig:changing_n">
 ![Time against $n$](time_n.pdf){width=45%}
@@ -331,12 +342,12 @@ Response to variation in $n$.
 $\theta$ sets what we consider to be well-separated boxes in Barnes-Hut and FMM.
 As we reduce $\theta$ from $1$ in [Figure @fig:time_theta], there is first a
 rise in computation time, caused by FMM and BH having to do more multipole
-expansions at lower levels of the octree, followed then by a drop, corresponding
-to the reduction to brute-force (brute-force is still quick at $n = 1000$,
-therefore the _speed-up_.) At the small $\theta$ limit, both methods have a
-constant overhead above brute-force. Barnes-Hut is significantly slower, since
-it needs to traverse the entire octree for each particle, whereas FMM benefit
-from the one-shot dual-tree traversal and a shallower tree thanks to
+expansions at deeper levels of the octree, followed then by a drop,
+corresponding to the reduction to brute-force (brute-force is still quick at $n
+= 1000$, therefore the _speed-up_.) At the small $\theta$ limit, both methods
+have a constant overhead above brute-force. Barnes-Hut is significantly slower,
+since it needs to traverse the entire octree for each particle, whereas FMM
+benefit from the one-shot dual-tree traversal and a shallower tree thanks to
 $n_\mathrm{max} \ge 1$.
 
 Barnes-Hut displays a slower drop in error: This is likely because its MAC,
@@ -372,18 +383,19 @@ MACs. This is the case for both, but FMM is more sensitive to the value of $p$,
 because it employs five multipole kernels in one calculation compared to three
 in BH. Another interesting feature is that error distributions in BH for $p = 1$
 and $p = 2$ are almost identical. This is not fully understood, but inspection
-shows second order terms have been suppressed, possibly due to a mathematical
-coincidence.
+shows second order terms have been suppressed, possibly due to properties of the
+uniform distribution.
 
 ### Error distributions
 
 For each combination of parameters, we have taken their error distributions. We
-only show six distributions from BH with varying $\theta$, as most distributions
-share the same features. On a logarithmic scale, tightening the constraint
-(reducing $\theta$ here) causes the distribution to uniformly shift to the left,
-but the same shape is maintained, until $\theta$ is so small the MAC simply
-can't be met. This is when BH transitions to the brute-force regime ([Figures
-@fig:bh_to_brute_1] to [@fig:bh_to_brute_3]).
+only show six distributions from BH with varying $\theta$ ([Figure
+@fig:theta_dist]), as most distributions share the same features. On a
+logarithmic scale, tightening the constraint (reducing $\theta$ here) causes the
+distribution to uniformly shift to the left, but the same shape is maintained,
+until $\theta$ is so small the MAC simply can't be met. This is when BH
+transitions to the brute-force regime ([Figures @fig:bh_to_brute_1] to
+[@fig:bh_to_brute_3]).
 
 Another feature is the long tail towards the right: in each case a small portion
 of particles suffer from significant error. This can be remediated by using a
@@ -402,14 +414,13 @@ more sophisticated MAC [@Dehnen2014].
 Distribution of errors as $\theta$ is reduced.
 </div>
 
-## Simulation tests {#sec:sim_tests}
+## Simulations {#sec:sims}
 
 To verify the reliability of my algorithms, I have run simulations under three
 initial conditions and compared BH, FMM results with brute force. After each
 round of force calculation, a leap frog integrator evolves the system forward
-with step size $\delta t = 0.01$, for a total time of $\Delta t = 10$. Tests are
-run under the same conditions and default parameters as in the last section. The
-three conditions are:
+with step size $\delta t = 0.01$, for a total time of $\Delta t = 10$. The three
+conditions are:
 
 1. Cold start
 
@@ -418,20 +429,20 @@ three conditions are:
 
 2. Single "galaxy"
     
-   Generate a random uniform distribution of charges in a disk about set axis,
-   excluding a central radius. Add a "supermassive black hole (SMBH)" - particle
-   of very high mass at the centre, and set all particle velocities to that of
-   circular motion around the SMBH.
+   Generate a random uniform distribution of charges on a disk about set axis,
+   excluding a small central region. Add a "supermassive black hole (SMBH)" -
+   particle of very high mass at the centre, and set all particle velocities to
+   that of circular motion around the SMBH.
 \filbreak
 3. Two "galaxies"
 
    Generate two galaxies as above, tilted at different angles, then boost them
-   with velocities required for the SMBHs at the centre to orbit around each
-   other.
+   with velocities required for the SMBHs at the centre to perform circular
+   motion about their centre of mass.
 
 Due to lack of space we present and discuss the most interesting third case only
-here, while some snapshots of the other two can be found in the
-[Appendix]. Videos of full simulations are also available.
+here, while some discussions of the other two can be found in the [Appendix].
+Videos of full simulations are also available.
 
 Snapshots of the third system, shown in [Figure @fig:two_galaxies], display very
 good qualitative agreement across the three methods. As the galaxies rotate
@@ -440,7 +451,7 @@ following the galaxies' orbit, and are scattered outwards. This is not seen in
 the simulation of a single galaxy, and is thus a unique feature of this model.
 The stars at the centre on the other hand feel similar attractions from both
 galaxies, and can be exchanged between the them. Interestingly, the galactic
-centres seem further apart at half-period, likely because the attraction is
+centres appear further apart at half-period, likely because the attraction is
 reduced when they are facing away from each other. At a full period the centres
 are observed to return to almost the same initial locations.
 
@@ -474,7 +485,7 @@ however, gravity softening will be needed, which demands modification of the
 algorithms.
 
 On the other hand, angular momentum is much better conserved. Note an
-interesting "synchronised", "smooth" pattern in FMM's angular momenta
+interesting "synchronised", "smooth" pattern in FMM's angular momentum
 components, which is likely correlated with the relative positions of the
 galactic centres, and which might even be understood with a perturbative
 treatment.
@@ -500,23 +511,16 @@ aggressive optimizations, and auto-vectorization of our program, which greatly
 helps with loops encountered in vector operations. The combined effect is a near
 two-fold increase compared to `-O2` optimizations.
 
-**Memory allocation**. Because of stack limits, the `grid` carrying a static
-list of all particles (containing many 3D vectors) has to be allocated on the
+**Memory allocation**. Because of stack limits, the `grid` carrying a list of
+all particles (containing many 3D vectors) has to allocate its particles on the
 heap. However, all other particle instances are stored on the stack, reducing
 the allocation and access times. This leads to a 10-fold speed-up compared to
-when all vectors are dynamically allocated. At the end of each timestep, the
+when all particles are dynamically allocated. At the end of each timestep, the
 previous `grid` is written to disk and deallocated to save memory.
 
-**`soul` labels**. To track the particles within a node, instead of storing
-copies of the particle we merely store a label with which we can find the
-particle in a separate list. This at least halves the memory requirement.
-
-**Multipole kernels**. My spherical harmonics implementation of complexity
-$\mathcal{O}\left(p^4\right)$ already beats the naive Cartesian expansion of
-order $\mathcal{O}\left(p^6\right)$. However,  the complexity is further reduced
-to $\mathcal{O}\left(p^3\right)$ if we rotate the vector connecting the COC onto
-the z-axis [@Dehnen2014]. This might not be better for computations of my size
-however, because of the extra overhead of rotation operations.
+**`soul` labels**. To track the particles within an octree node, instead of
+storing copies of the particle we merely store a label with which we can find
+the particle in a separate list. This at least halves the memory requirement.
 
 **Recurrence relations**. We can pre-process all solid harmonics of order $p$ by
 harnessing their recurrence relations in time $\mathcal{O}\left(p^2\right)$ with
@@ -524,47 +528,62 @@ simple math operations, instead of directly evaluating their computationally
 costly expressions based on Legendre polynomials in the 4th order loop of the
 kernels. This change brought a 10x speed-up to BH and FMM.
 
+**Multipole kernels**. My spherical harmonics implementation of complexity
+$\mathcal{O}\left(p^4\right)$ already beats the naive Cartesian expansion of
+order $\mathcal{O}\left(p^6\right)$. However,  the complexity is further reduced
+to $\mathcal{O}\left(p^3\right)$ if we rotate the displacement vector supplied
+to kernels onto the $z$-axis [@Dehnen2014]. This might not be better for
+computations of my size however, because of the extra overhead of rotation
+operations.
+
 # Conclusions {#sec:conclusions}
 
-In this paper we present implementations of two hierarchical algorithms,
-Barnes-Hut and Fast Multipole Method for the accelerated calculation of N-body
+I presented implementations of two hierarchical algorithms, Barnes-Hut (BH) and
+Fast Multipole Method (FMM) for the accelerated calculation of N-body
 inverse-square law interactions. Their time complexities, in particular, the
-close-to-linear dependence on number of particles, were shown to be consistent
-with theoretical descriptions. Much effort is put into optimization, allowing
-the program to calculate forces on $10^5$ particles in $10 \,\mathrm{s}$ with
-FMM, where it would have taken brute-force $120 \,\mathrm{s}$.
+close-to-linear scaling with the number of particles, were shown to be
+consistent with theoretical descriptions. With reasonable parameters, FMM was
+found to be superior in nearly every way to BH, and both consistently outperform
+brute-force in a large system. The program can calculate forces on $10^5$
+particles in $10 \unit{s}$ with FMM, where it would have taken brute-force $120
+\unit{s}$.
 
 The algorithms have additionally been used to perform simulations on simplified
 models such as collision of two galaxies, and good agreements were seen between
 the hierarchical approaches and a brute-force calculation.
 
-As a next step, energy and angular momentum conservation can be improved by
-using higher order integrators and incorporating softened gravity, and we can
-extend the range of applicability by building in e.g. the Stokes and Helmholtz
-kernels.
+As a next step, energy conservation can be improved by using higher order
+integrators and incorporating softened gravity, and we can extend the range of
+applicability by building in e.g. the Stokes and Helmholtz kernels. It will also
+be possible to introduce parallelism such as `OpenMP` or `MPI` so the code can
+handle much larger systems on a computing cluster.
 
 \appendix
 
 # Appendix
 
-## Code documentation
+## Code submission
 
-The full codebase has been documented, and documentation has been generated with
-`Doxygen` for both `C++` and `Python` files. To view a list of source files,
-please see the _File Index_ section within the generated PDF documentation. Its
-first section also presents an overview on the structure and organisation of
-code, as well as build instructions.
+The code is submitted as a `git` repository containing all the editing history.
+`README.md` in the base folder contains a short introduction, as well as build
+instructions. Some compilation targets, such as this report and documentation
+have been generated and included with the submission for the convenience of the
+reader.
+
+The full codebase has been documented and a symlink to the generated
+documentation can be found at `refman.pdf` in the project base. A list of source
+files can be found in the _File Index_ section of the documentation.
 
 ## Simulation results
 
 Below we list partial results to the cold start and single galaxy initial
-conditions. [TODO]{.mark} Side-by-side comparisons of results from the three
-algorithms, for all three initial conditions, are included in the submission.
+conditions. Side-by-side comparisons of results from the three algorithms, for
+all three initial conditions, are included with the submission.
 
 ### Cold start
 
 The initial condition for the cold start has been described in [Section
-@sec:sim_tests]. In this run, $n = 500$. Snapshots are shown in [Figure
+@sec:sims]. In this run, $n = 500$. Snapshots are shown in [Figure
 @fig:cold_start]; energy and angular momentum change, in [Figure @fig:cold_E_L].
 
 <div id="fig:cold_start">
@@ -635,6 +654,8 @@ BH, FMM. Left to right: $t = 0, 1, 2, 3$.
 
 Change of energy and angular momentum in a single galaxy.
 </div>
+
+\clearpage
 
 # References
 

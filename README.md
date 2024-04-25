@@ -93,7 +93,8 @@ make doc
 
 This calls `doxygen` with file options set in `docs/Doxyfile`. For `html`
 version open `docs/html/index.html` with a browser. For `pdf`, open
-`docs/latex/refman.pdf`. Requires `doxygen`.
+`docs/latex/refman.pdf`. Requires `doxygen`. PDF compilation requires
+appropriate `latex` packages.
 
 ### `clean`: Directory clean-up
 
