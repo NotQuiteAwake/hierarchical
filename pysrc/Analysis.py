@@ -19,7 +19,7 @@ import IO
 from Grid import Grid
 
 # int_type name mapping
-int_mapping:dict[str, str] = {'fmm':'FMM',
+intMapping:dict[str, str] = {'fmm':'FMM',
                               'brute':'Brute-force',
                               'bh':'Barnes-Hut'
                               }
@@ -50,7 +50,7 @@ def GetResStats(paramList:list, res:dict, int_type:str) -> tuple[list, list]:
 
     avg_list:list = []
     std_list:list = []
-    int_name = int_mapping[int_type]
+    int_name = intMapping[int_type]
 
     for p in paramList:
         avg_list.append(np.average(res[p][int_type]))
@@ -88,10 +88,10 @@ def AnalyseParam(fileName:str,
         avg_time_brute:float = np.average(res[param_min]['brute'])
         plt.plot(param_list,
                  [avg_time_brute for t in param_list],
-                 label = 'brute')
+                 label = intMapping['brute'])
 
     for int_type in int_types:
-        int_name = int_mapping[int_type]
+        int_name = intMapping[int_type]
         avg_list, std_list = GetResStats(param_list, res, int_type)
         loopPlt(param_list, avg_list, std_list, int_name)
     
@@ -145,12 +145,12 @@ def AnalyseN(fileName:str, figDir:str):
 
     def finalPlt(n_min, n_max):
         plt.figure(0)
-        plt.title('Average time against number of masses')
+        plt.title('Computation time against number of particles $n$')
         plt.legend()
         plt.xlim(0, n_max)
         plt.ylim(0)
         # plt.ylim(0, y_max * 1.1)
-        plt.xlabel('Number of masses $N$')
+        plt.xlabel('Number of particles $n$')
         plt.ylabel('Average computation time $t / \\mu s$')
         plt.savefig(figDir + 'time_n.pdf')
         plt.clf()
@@ -195,8 +195,8 @@ def AnalyseP(fileName:str, figDir:str):
 
     def finalPlt(p_min, p_max):
         plt.legend()
-        plt.title('Computation time against order of multipole expansion')
-        plt.xlabel('Order of multipole expansion, $p$')
+        plt.title('Computation time against order of expansion $p$')
+        plt.xlabel('Order of expansion $p$')
         plt.ylabel('Average computation time $t / \\mu s$')
         plt.xlim(p_min, p_max)
         plt.ylim(0)
@@ -222,7 +222,7 @@ def AnalyseTheta(fileName:str, figDir:str):
 
     def finalPlt(theta_min, theta_max):
         plt.title('Computation time against opening angle $\\theta$')
-        plt.xlabel('$\\theta$')
+        plt.xlabel('Opening angle $\\theta$')
         plt.ylabel('Average computation time / $\\mu s$')
         plt.tight_layout()
         plt.legend()
@@ -303,7 +303,7 @@ def AnalyseParamError(folderName:str,
         if int_type == 'brute':
             continue
 
-        int_name:str = int_mapping[int_type]
+        int_name:str = intMapping[int_type]
         print(int_type)
 
         # all errors at each p
@@ -342,7 +342,7 @@ def AnalyseParamError(folderName:str,
 
             plt.title(f"Error distribution for {xlabel} = {param_disp}, " + 
                       f"{int_name}")
-            plt.xlabel('error')
+            plt.xlabel('Error')
             plt.ylabel('Number of particles')
             plt.hist(allerr[param],
                      bins=np.logspace(np.log10(l), np.log10(r), divs))
@@ -377,7 +377,7 @@ def AnalyseParamError(folderName:str,
             plt.gca().set_xscale("log")
         plt.title(f"Error against {xlabel} ({int_name})")
         plt.xlabel(f'{xlabel.capitalize()}')
-        plt.ylabel('relative error')
+        plt.ylabel('Relative error')
         plt.legend()
         plt.xlim(param_min, param_max)
 
@@ -390,7 +390,7 @@ def AnalyseParamError(folderName:str,
         plt.gca().set_xscale("log")
     plt.title(f"Error against {xlabel}")
     plt.xlabel(f'{xlabel.capitalize()}')
-    plt.ylabel('relative error')
+    plt.ylabel('Relative error')
     plt.legend()
     plt.xlim(param_min, param_max)
 
@@ -464,7 +464,7 @@ def AnimateGrid(grids:dict[float, Grid],
     fig = plt.figure()
     ax = fig.add_subplot(projection = '3d')
 
-    _title:str = f'{int_mapping[int_type]} ' if int_type is not None else ""
+    _title:str = f'{intMapping[int_type]} ' if int_type is not None else ""
     t_list = list(grids.keys())
 
     def animate(i:int):
@@ -518,7 +518,7 @@ def GridSnapshots(grids:dict[float, Grid],
     for t, snapshot in zip(snap_t_list, snapshot_list):
         VisualiseGrid(snapshot,
                       scale,
-                      f"{int_mapping[int_type]} t = {t:.2f}",
+                      f"{intMapping[int_type]} t = {t:.2f}",
                       fig)
         fig.tight_layout()
         fig.savefig(f'{figDir}{int_type}_{t}.pdf')
@@ -546,7 +546,7 @@ def AnalyseEvo(folderName:str, figDir:str):
         print(f'Load {file_name}')
         int_type, stats_list, grids, scale = IO.LoadEvo(file_name)
         print(int_type)
-        int_name = int_mapping[int_type]
+        int_name = intMapping[int_type]
         print('Animation')
         AnimateGrid(grids, scale, f'{figDir}{int_type}_ani.mp4', int_type)
 
