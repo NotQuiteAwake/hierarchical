@@ -577,6 +577,7 @@ def AnalyseEvo(folderName:str, figDir:str):
     plt.xlabel("Time $t$")
     plt.ylabel("Energy $E$")
     plt.legend()
+    plt.tight_layout()
     plt.savefig(f'{figDir}E_t.pdf')
     plt.clf()
 
@@ -586,6 +587,7 @@ def AnalyseEvo(folderName:str, figDir:str):
         plt.xlabel("Time $t$")
         plt.ylabel(f"Angular momentum $L_{dim[i]}$")
         plt.legend()
+        plt.tight_layout()
         plt.savefig(f'{figDir}L_{dim[i]}_t.pdf')
         plt.clf()
 
