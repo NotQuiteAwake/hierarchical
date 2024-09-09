@@ -21,6 +21,7 @@ Doxygen-generated documentation.
 - `notes`: Contains report and some other notes in markdown format.
 - `scripts`: Very short bash scripts for small tasks.
 - `makefiles`: Stores all `make` targets.
+- `animations`: Animations to three simulated examples.
 
 ## Build Instructions
 
