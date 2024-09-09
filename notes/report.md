@@ -396,7 +396,7 @@ only show six distributions from BH with varying $\theta$ ([Figure
 @fig:theta_dist]), as most distributions share similar features. On a
 logarithmic scale, tightening the constraint (reducing $\theta$ here) causes the
 distribution to uniformly shift to the left, but the same shape is maintained,
-until $\theta$ is so small the MAC simply can't be met. This is when BH
+until $\theta$ is so small the MAC simply cannot be met. This is when BH
 transitions to the brute-force regime ([Figures @fig:bh_to_brute_1] to
 [@fig:bh_to_brute_3]).
 
